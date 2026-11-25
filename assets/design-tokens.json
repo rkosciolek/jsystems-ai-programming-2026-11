@@ -1,0 +1,191 @@
+{
+  "$source": {
+    "name": "Corporate engineering brand reference (anonymised)",
+    "extractedAt": "2026-11-25",
+    "viewport": "1920x1080 (desktop); token values measured at 1440x900",
+    "method": "Computed styles of a live corporate homepage via Playwright CLI; source name, logos and content removed"
+  },
+  "colors": {
+    "brand": {
+      "primary": "#003963",
+      "accent": "#0096E0",
+      "accentLight": "#85D2F1",
+      "highlight": "#CC1D56",
+      "steel": "#788CAA",
+      "error": "#CC1D56",
+      "success": "#208A20"
+    },
+    "background": {
+      "default": "#FEFEFE",
+      "surface": "#FFFFFF",
+      "light": "#E9F4FD",
+      "tint": "#D3E9FA",
+      "dark": "#003963",
+      "overlay": "rgba(0, 57, 99, 0.6)"
+    },
+    "text": {
+      "primary": "#003963",
+      "secondary": "#515D6A",
+      "muted": "#788CAA",
+      "link": "#003963",
+      "date": "#0096E0",
+      "onDark": "#FFFFFF"
+    },
+    "border": {
+      "default": "#85D2F1",
+      "strong": "#0096E0",
+      "highlight": "#CC1D56"
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "primary": "\"NotoSans\", Arial, sans-serif",
+      "medium": "\"NotoSans-Medium\", \"NotoSans\", Arial, sans-serif",
+      "black": "\"NotoSans-Black\", \"NotoSans\", Arial, sans-serif"
+    },
+    "fontFiles": {
+      "light": "assets/fonts/notosans/NotoSans-Light.main.woff2",
+      "regular": "assets/fonts/notosans/NotoSans-Regular.main.woff2",
+      "medium": "assets/fonts/notosans/NotoSans-Medium.main.woff2",
+      "bold": "assets/fonts/notosans/NotoSans-Bold.main.woff2",
+      "black": "assets/fonts/notosans/NotoSans-Black.main.woff2"
+    },
+    "fontWeights": {
+      "light": 300,
+      "regular": 400,
+      "medium": 500,
+      "bold": 700,
+      "black": 900
+    },
+    "fontSize": {
+      "xs": "14.4px",
+      "sm": "16px",
+      "base": "18px",
+      "lg": "22px",
+      "xl": "45px",
+      "2xl": "55px",
+      "display": "56px"
+    },
+    "lineHeight": {
+      "tight": "1.0",
+      "heading": "1.2",
+      "base": "1.6"
+    },
+    "letterSpacing": {
+      "normal": "normal",
+      "nav": "0.5px",
+      "cardTitle": "0.6px",
+      "display": "1px"
+    }
+  },
+  "spacing": {
+    "1": "4px",
+    "2": "8px",
+    "3": "12px",
+    "4": "16px",
+    "5": "22px",
+    "6": "24px",
+    "8": "32px",
+    "12": "50px",
+    "14": "56px"
+  },
+  "layout": {
+    "containerMaxWidth": "1360px",
+    "readingWidth": "960px",
+    "headerHeight": "80px"
+  },
+  "borderRadius": {
+    "none": "0px",
+    "card": "0px 15px 0px 0px",
+    "cardAlt": "0px 0px 0px 12px",
+    "pill": "22px",
+    "circle": "50%"
+  },
+  "components": {
+    "button": {
+      "primary": {
+        "backgroundColor": "#FFFFFF",
+        "color": "#003963",
+        "border": "1px solid #0096E0",
+        "padding": "8px 50px",
+        "borderRadius": "22px",
+        "fontSize": "18px",
+        "fontWeight": 700,
+        "height": "47px"
+      },
+      "small": {
+        "backgroundColor": "#FFFFFF",
+        "color": "#003963",
+        "border": "1px solid #0096E0",
+        "padding": "8px 32px",
+        "borderRadius": "22px",
+        "fontSize": "14.4px",
+        "fontWeight": 700,
+        "height": "41px"
+      },
+      "icon": {
+        "backgroundColor": "#003963",
+        "color": "#FFFFFF",
+        "borderRadius": "50%"
+      }
+    },
+    "header": {
+      "backgroundColor": "#FFFFFF",
+      "height": "80px",
+      "position": "sticky"
+    },
+    "nav": {
+      "color": "#003963",
+      "fontSize": "18px",
+      "fontWeight": 400,
+      "letterSpacing": "0.5px",
+      "padding": "16px 0px"
+    },
+    "langSwitch": {
+      "activeColor": "#003963",
+      "inactiveColor": "#515D6A",
+      "fontSize": "16px"
+    },
+    "heroTitle": {
+      "color": "#FFFFFF",
+      "fontSize": "55px",
+      "lineHeight": "65px",
+      "fontWeight": 900,
+      "letterSpacing": "1px",
+      "textTransform": "uppercase"
+    },
+    "sectionTitle": {
+      "color": "#003963",
+      "fontSize": "45px",
+      "lineHeight": "55px",
+      "fontFamily": "NotoSans-Medium"
+    },
+    "newsCard": {
+      "imageRadius": "0px 15px 0px 0px",
+      "dateColor": "#0096E0",
+      "titleColor": "#515D6A",
+      "titleFontSize": "22px",
+      "titleLineHeight": "28px",
+      "titleFontWeight": 700,
+      "bodyColor": "#003963",
+      "readMoreColor": "#003963",
+      "readMoreIconColor": "#CC1D56"
+    },
+    "sectorTab": {
+      "backgroundColor": "#D3E9FA",
+      "backgroundColorAlt": "#E9F4FD",
+      "color": "#003963",
+      "borderBottom": "1px solid #CC1D56"
+    },
+    "hashtag": {
+      "color": "#CC1D56",
+      "fontWeight": 700
+    },
+    "footer": {
+      "backgroundColor": "#003963",
+      "color": "#FFFFFF",
+      "linkFontSize": "16px",
+      "fontSize": "14.4px"
+    }
+  }
+}
