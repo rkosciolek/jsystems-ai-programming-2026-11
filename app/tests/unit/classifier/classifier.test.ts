@@ -39,10 +39,10 @@ describe("Jev classifier client", () => {
     const { result } = await run("jev-complaint-laptop-1", input("complaint"));
 
     expect(result.model).toBe("typesafe/jev-1.14-20261014");
-    expect(result.answers.image_usable).toMatchObject({ value: true, certainty: 0.84 });
+    expect(result.answers.image_usable).toMatchObject({ value: true, certainty: 0.82 });
     expect(result.answers.device_category).toMatchObject({ value: "laptop", certainty: 1 });
     expect(result.answers.damage_cause).toMatchObject({ value: "impact", certainty: 1 });
-    expect(result.answers.description_matches_photo).toMatchObject({ value: true, certainty: 0.57 });
+    expect(result.answers.description_matches_photo).toMatchObject({ value: true, certainty: 0.54 });
     expect(result.answers.damage_cause?.raw).toMatchObject({ confidence: 1 });
     expect(result.costUsd).toBe(0);
     expect(result.latencyMs).toEqual(expect.any(Number));
@@ -51,11 +51,11 @@ describe("Jev classifier client", () => {
   it("normalizes recorded return noul, choice and score answers", async () => {
     const { result } = await run("jev-return-phone-1", input("return", ""));
 
-    expect(result.answers.image_usable).toMatchObject({ value: true, certainty: 0.91 });
+    expect(result.answers.image_usable).toMatchObject({ value: true, certainty: 0.9 });
     expect(result.answers.device_category).toMatchObject({ value: "smartphone", certainty: 1 });
     expect(result.answers.condition).toMatchObject({ value: 4, certainty: 0.99 });
     expect(result.answers.condition?.raw).toMatchObject({ confidence: 0.99 });
-    expect(result.answers.packaging_visible).toMatchObject({ value: false, certainty: 0.9 });
+    expect(result.answers.packaging_visible).toMatchObject({ value: false, certainty: 0.87 });
   });
 
   it("uses choice probability rather than confidence and preserves confidence in raw", async () => {

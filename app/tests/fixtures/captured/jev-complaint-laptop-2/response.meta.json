@@ -5,18 +5,22 @@
     "access-control-allow-origin": "*",
     "access-control-expose-headers": "WWW-Authenticate,PAYMENT-REQUIRED,Payment-Receipt,PAYMENT-RESPONSE,Location,X-Generation-Id,x-openrouter-error-origin,x-openrouter-error-tool,X-Provider-Name,request-id,x-openrouter-subscription-passthrough,anthropic-ratelimit-unified-status,Retry-After,cf-ray",
     "alt-svc": "h3=\":443\"; ma=86400",
-    "cf-ray": "a6082b8afacae75e-WAW",
+    "cf-ray": "a608e2fb2c28c3e0-WAW",
     "connection": "keep-alive",
     "content-encoding": "gzip",
     "content-type": "application/json",
-    "date": "Thu, 26 Nov 2026 10:22:06 GMT",
+    "date": "Thu, 26 Nov 2026 12:27:20 GMT",
     "permissions-policy": "payment=(self \"https://checkout.stripe.com\" \"https://connect-js.stripe.com\" \"https://js.stripe.com\" \"https://*.js.stripe.com\" \"https://hooks.stripe.com\")",
     "referrer-policy": "no-referrer, strict-origin-when-cross-origin",
     "server": "cloudflare",
-    "set-cookie": "__cf_bm=PuBnBcHf7WRZ68BRighGl4_3h2sNlcFu_7lJ3Ao_KG4-1795688526.5577722-1.0.1.1-vaVSpPoSfLfck8TKnSaK.atFH4FZMMUO6.PxBK1VJJ7WAmyjfh1EFeDlzO49FRBPcv3O03Yvi9Y8cSVOYeuOeEwuuWWb7p8HF2k19jS5SReB2FWL3FYM33dpsdbnHkGr; HttpOnly; SameSite=None; Partitioned; Secure; Path=/; Domain=openrouter.ai; Expires=Thu, 26 Nov 2026 10:52:06 GMT",
+    "set-cookie": "__cf_bm=9nx3YID15O92SQZTpWqryI.7dQLgIZW9cyKy1Nda.z8-1795696040.1855128-1.0.1.1-uGkEswFXZB7jnfBl.GquzEKdg2VpaZ5d3UIBjE0yuC9C0iVxcSgtLsDIDNFUmefrimC0dzXciHXlzFLbcOeCf1xOZ8s0Wjr2UjiyMVlXfqSXBGKfIMmTHjItJp1GfuEH; HttpOnly; SameSite=None; Partitioned; Secure; Path=/; Domain=openrouter.ai; Expires=Thu, 26 Nov 2026 12:57:20 GMT",
     "transfer-encoding": "chunked",
     "x-content-type-options": "nosniff",
-    "x-generation-id": "gen-dec-1795688526-4bh1eKMuzyDPK6K97rnV",
+    "x-generation-id": "gen-dec-1795696040-Pvw6fEB0MOqMFs1Z95ts",
     "x-provider-name": "TypeSafe"
-  }
+  },
+  "chunkSizes": [
+    60,
+    950
+  ]
 }

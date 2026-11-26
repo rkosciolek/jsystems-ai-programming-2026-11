@@ -5,28 +5,28 @@
     "access-control-allow-origin": "*",
     "access-control-expose-headers": "WWW-Authenticate,PAYMENT-REQUIRED,Payment-Receipt,PAYMENT-RESPONSE,Location,X-Generation-Id,x-openrouter-error-origin,x-openrouter-error-tool,X-Provider-Name,request-id,x-openrouter-subscription-passthrough,anthropic-ratelimit-unified-status,Retry-After,cf-ray",
     "alt-svc": "h3=\":443\"; ma=86400",
-    "cf-ray": "a6083e89dd75e75e-WAW",
+    "cf-ray": "a608e5d238c4782e-WAW",
     "connection": "keep-alive",
     "content-encoding": "gzip",
     "content-type": "application/json",
-    "date": "Thu, 26 Nov 2026 10:35:07 GMT",
+    "date": "Thu, 26 Nov 2026 12:29:19 GMT",
     "permissions-policy": "payment=(self \"https://checkout.stripe.com\" \"https://connect-js.stripe.com\" \"https://js.stripe.com\" \"https://*.js.stripe.com\" \"https://hooks.stripe.com\")",
     "referrer-policy": "no-referrer, strict-origin-when-cross-origin",
     "server": "cloudflare",
-    "set-cookie": "__cf_bm=GkAbxX1tk48e._JgpA_Lzu7RU2so9UHj8rp9vZTNtzA-1795689304.6153975-1.0.1.1-NdkQtvjGvFxqnfIOMbPz8XFEC6bVTZrLBBrQESP8sq1hS2g4u0soCU2LVu4fiGZCNyXswMVCl6mPyLZq6OQN5k1G5IrSx1Lmgaq6V6ARMeFcop_J6UJECTYjoYOoDFZY; HttpOnly; SameSite=None; Partitioned; Secure; Path=/; Domain=openrouter.ai; Expires=Thu, 26 Nov 2026 11:05:07 GMT",
+    "set-cookie": "__cf_bm=32oHOoLJAKy8IwVMyl5nG2QMTP4Rz06HgbfIi4hWQSw-1795696156.5152664-1.0.1.1-PJ5.7zMjb5MjHLTNXpFYpCKNVLHxjeoiijtzjMlHmzprODvcPB5LPqXoB883jHekq7kZ6pqPmUuh6UW51KrX8df8XLaeUtdvWc0083_oPHO8TDJAgatlWKjLYOdO0VLc; HttpOnly; SameSite=None; Partitioned; Secure; Path=/; Domain=openrouter.ai; Expires=Thu, 26 Nov 2026 12:59:19 GMT",
     "transfer-encoding": "chunked",
     "x-content-type-options": "nosniff",
-    "x-generation-id": "gen-1795689304-cI9ycOXbFSOHRA0617ir",
+    "x-generation-id": "gen-1795696156-WP5WDgx4WH3m84AKUJEn",
     "x-openrouter-release": "api;6974da3e-2d30-4253-9b9d-763143ceef81"
   },
   "chunkSizes": [
     11,
     11,
     11,
-    2238,
-    3112,
-    1779,
-    1773,
-    965
+    11,
+    2042,
+    1799,
+    1793,
+    1080
   ]
 }

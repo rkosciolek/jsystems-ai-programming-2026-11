@@ -154,7 +154,7 @@
           },
           {
             "type": "text",
-            "text": "Dane z formularza (unverified hints, sprawdź ze zdjęciem):\n{\"caseType\":\"complaint\",\"category\":\"Laptop\",\"model\":\"Acer Aspire 5\",\"purchaseDate\":\"2026-09-01\",\"channel\":\"online\",\"description\":\"Ekran laptopa pękł w lewym rogu i pojawiły się pionowe pasy.\"}\n\nOdpowiedzi klasyfikatora Jev (unverified hints):\n{\"image_usable\":{\"value\":true,\"certainty\":0.84},\"device_category\":{\"value\":\"laptop\",\"certainty\":1},\"visible_damage\":{\"value\":true,\"certainty\":0.98},\"damage_cause\":{\"value\":\"impact\",\"certainty\":1},\"description_matches_photo\":{\"value\":true,\"certainty\":0.57},\"escalation_signal\":{\"value\":false,\"certainty\":0.98},\"instruction_injection\":{\"value\":false,\"certainty\":0.98}}"
+            "text": "Dane z formularza (unverified hints, sprawdź ze zdjęciem):\n{\"caseType\":\"complaint\",\"category\":\"Laptop\",\"model\":\"Acer Aspire 5\",\"purchaseDate\":\"2026-09-01\",\"channel\":\"online\",\"description\":\"Ekran laptopa pękł w lewym rogu i pojawiły się pionowe pasy.\"}\n\nOdpowiedzi klasyfikatora Jev (unverified hints):\n{\"image_usable\":{\"value\":true,\"certainty\":0.82},\"device_category\":{\"value\":\"laptop\",\"certainty\":1},\"visible_damage\":{\"value\":true,\"certainty\":0.99},\"damage_cause\":{\"value\":\"impact\",\"certainty\":1},\"description_matches_photo\":{\"value\":true,\"certainty\":0.54},\"escalation_signal\":{\"value\":false,\"certainty\":0.98},\"instruction_injection\":{\"value\":false,\"certainty\":0.98}}"
           }
         ]
       }

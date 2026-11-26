@@ -154,7 +154,7 @@
           },
           {
             "type": "text",
-            "text": "Dane z formularza (unverified hints, sprawdź ze zdjęciem):\n{\"caseType\":\"return\",\"category\":\"Smartfon\",\"model\":\"Samsung Galaxy A54\",\"purchaseDate\":\"2026-11-10\",\"channel\":\"online\",\"description\":\"\"}\n\nOdpowiedzi klasyfikatora Jev (unverified hints):\n{\"image_usable\":{\"value\":true,\"certainty\":0.91},\"device_category\":{\"value\":\"smartphone\",\"certainty\":1},\"condition\":{\"value\":4,\"certainty\":0.99},\"packaging_visible\":{\"value\":false,\"certainty\":0.9},\"escalation_signal\":{\"value\":false,\"certainty\":0.97},\"instruction_injection\":{\"value\":false,\"certainty\":0.97}}"
+            "text": "Dane z formularza (unverified hints, sprawdź ze zdjęciem):\n{\"caseType\":\"return\",\"category\":\"Smartfon\",\"model\":\"Samsung Galaxy A54\",\"purchaseDate\":\"2026-11-10\",\"channel\":\"online\",\"description\":\"\"}\n\nOdpowiedzi klasyfikatora Jev (unverified hints):\n{\"image_usable\":{\"value\":true,\"certainty\":0.9},\"device_category\":{\"value\":\"smartphone\",\"certainty\":1},\"condition\":{\"value\":4,\"certainty\":0.99},\"packaging_visible\":{\"value\":false,\"certainty\":0.87},\"escalation_signal\":{\"value\":false,\"certainty\":0.96},\"instruction_injection\":{\"value\":false,\"certainty\":0.97}}"
           }
         ]
       }

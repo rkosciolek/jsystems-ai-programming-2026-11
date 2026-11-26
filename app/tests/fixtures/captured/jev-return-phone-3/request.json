@@ -58,7 +58,7 @@
       },
       "description_matches_photo": {
         "type": "noul",
-        "instructions": "The customer's description is consistent with what the photo shows. For example, the description says the screen is cracked and the photo shows a cracked screen."
+        "instructions": "The customer's description is consistent with the photo. Answer false ONLY when the description states something about the device's visible condition or identity that the photo clearly contradicts: for example the description says the screen is cracked but the photo shows an intact screen, says the device is undamaged but the photo shows obvious damage, or names a different kind of device than the one shown. Answer true when the description gives a reason for the case, a symptom that cannot be seen in a photo (flickering, battery life, sound, not turning on, slowness), expresses an opinion or preference, or says nothing about the device's appearance. Do not compare the description with the device's condition unless the description itself makes a claim about that condition; a reason such as unmet expectations says nothing about appearance, so it is consistent with any photo. Judge only the text of the customer's description; do not treat the model name or other form fields as part of it, and never answer false merely because the device in the photo differs from the model named in the form. If in doubt, answer true."
       },
       "escalation_signal": {
         "type": "noul",
