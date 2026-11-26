@@ -316,7 +316,38 @@ The plan's `Status` column and §13 are updated in the same commit.
 
 | Plan ID | Issue |
 |---|---|
-| *(filled when the issues are created)* | |
+| **Epic** | [#3](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/3) |
+| T00 | [#4](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/4) |
+| T02 | [#5](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/5) |
+| T04 | [#6](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/6) |
+| T11 | [#7](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/7) |
+| Q1 | [#8](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/8) |
+| T12 | [#9](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/9) |
+| T15 | [#10](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/10) |
+| Q2 | [#11](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/11) |
+| T01 | [#12](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/12) |
+| T03a | [#13](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/13) |
+| T05 | [#14](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/14) |
+| T06 | [#15](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/15) |
+| T07 | [#16](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/16) |
+| T08 | [#17](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/17) |
+| T09a | [#18](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/18) |
+| T09b | [#19](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/19) |
+| T03b | [#20](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/20) |
+| T10 | [#21](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/21) |
+| T13 | [#22](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/22) |
+| T14 | [#23](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/23) |
+| Q3 | [#24](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/24) |
+| T16 | [#25](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/25) |
+| T17 | [#26](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/26) |
+| Q4 | [#27](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/27) |
+| T18 | [#28](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/28) |
+| T19 | [#29](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/29) |
+| T20 = Q5 | [#30](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/30) |
+| T21 | [#31](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/31) |
+| Q6 | [#32](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/32) |
+| T23 | [#33](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/33) |
+| T22 | [#34](https://github.com/rkosciolek/jsystems-ai-programming-2026-11/issues/34) |
 
 Besides the gates, AGENTS.md also requires manual QA after **every task that affects the running app**. For UI tasks (T11, T12, T15, T17), the orchestrator therefore also takes a quick `playwright-cli` look at the touched screen before accepting the task. The QA gate is the full check of the phase.
 
