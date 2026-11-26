@@ -86,3 +86,61 @@ Discovery: 32 tests in 14 files. Log: `app/var/q6/e2e/run.log`. Exit code 1.
 ## 8. Servers
 
 S1, S2, S3, S6 were stopped (ports 3901, 3902, 3903, 3906 closed). A separate `next-server` on port 3999 (pid 550349, started 15:43, cwd `app/`) is not from this run and was left running. The owner should check it.
+
+## 9. Run 2 (2026-11-26, after the Q6 frontend fixes, commit c3f7210)
+
+Servers: S1 3921 fast-only (`app/var/q6b/s1.jsonl`), S2 3922 llm-only (`app/var/q6b/s2.jsonl`), both started from `app/` with `next start`. Driver: `app/var/q6b/smoke2.mjs`. Screenshots: `run2-*.png` in this folder.
+
+**Verdict: FAIL (one new defect, Q6.3).** Q6.2 and Q6.1 are fixed in this run. Q6.3 is a new defect in the M7 revision block.
+
+### Static and E2E (already run before this smoke)
+
+| Check | Result |
+|---|---|
+| `npm run lint`, `npm run typecheck`, `npm run build` | pass |
+| `npm test` | 29 files, 515 tests, pass |
+| `npx playwright test` | 32 passed (incl. E12 expired case, which was the Q6.1 failure in run 1) |
+
+### Manual smoke
+
+| Item | Viewport | Result | Evidence |
+|---|---|---|---|
+| Q6.2 "Dzień dobry" at the top after entry | 1920 / 360 | PASS. Greeting top 469 px (1920) and 228 px (360). Container scrollTop 0 at t0, t4 and t12 s. | RESULT Q5.2-1920 / Q5.2-360; shots 26, 27 |
+| Q5.1 scroll up while pending: position kept, scroll-to-latest button | 1920 | PASS. Top 1042 to 442, reply still pending, button shown, position kept after reply. | 22, 23 |
+| Q5.1 scroll up while pending | 360 | PASS after driver fix. Top 1598 to 998, pending, button shown, position kept after reply. | RESULT ALSO 360 |
+| Q5.1 at bottom: new reply followed | 1920 | PASS. Gap 0 before and after reply. | 28 |
+| Q5.1 at bottom: new reply followed | 360 | OBSERVATION. Gap 17 px after reply, button shown. Check whether the 17 px gap is a real miss or only a measurement offset. | RESULT Q5.1b-after-reply 360 |
+| Q5.3 dates DD.MM.RRRR | 1920 / 360 | PASS. `26.03.2026`, no ISO date left. | text check |
+| Q5.4 over 2000 chars | 1920 / 360 | PASS. Message visible, URL unchanged. | 21 |
+| Q5.5 progress screen h1, main, axe | 1920 / 360 | NOT VERIFIED in run 2. Progress callback returned null in both runs (driver waited for the text and missed it). Run 1 evidence stands (24, 25). | RESULT Q5.5-progress-* null |
+| M1 complaint laptop 8 months, fast path | 1920 / 360 | PASS for path and scroll (no horizontal scroll). Decision "Wstępnie odrzucono". Six sections and disclaimer NOT asserted by the driver; not checked visually in this run. | 01, 02 |
+| M1 complaint laptop 30 months | 1920 | PASS for path. Decision "Wstępnie odrzucono". | 03 |
+| M7 insist without facts: no revision | 1920 / 360 | PASS. No "Zmieniona ocena" block. | 07 |
+| M7 channel correction: revision block | 1920 | **FAIL (Q6.3).** Block shows "Poprzednia ocena: Wymaga uzupełnienia. Nowa ocena: Wymaga uzupełnienia." The header appears although the decision did not change. | 08 |
+| M7 channel correction: revision block | 360 | **FAIL (Q6.3)**, same as 1920. Revision shown with an unchanged decision. | M7-channel-correction 360 |
+| M7 one disclaimer inside the block | 1920 / 360 | PASS. Disclaimer count 1. | driver count |
+| M7 human request: escalation | 1920 / 360 | PASS. Escalated ("Przekazano do specjalisty" in reply). | 09 |
+| M7 new rule: rejected in-store return, "accept, item unused", no corrections | 1920 / 360 | PASS. Not accepted, no revision. | 10 |
+| M7c channel correction on another case | 1920 | No revision was produced (initial decision "Wymaga uzupełnienia"). LLM variance, not counted. | 29 |
+| M7c channel correction on another case | 360 | Revision produced. Driver found "Zmieniona ocena" in 2 DOM elements (badge + heading), same as run 1. The 1920 screenshot of the M7 revision block shows the badge above a block with the same title; the 360 screenshot was not viewed. | 29 |
+| M12 axe on form and chat (serious/critical) | 1920 / 360 | PASS. No violations. | driver |
+| M12 no horizontal scroll, h1, one main | 1920 / 360 | PASS. Form h1 "Zgłoś reklamację lub zwrot". | 15, 16, 19, 20 |
+
+### Log grep (after the smoke run)
+
+| Event | s1 | s2 | Explanation |
+|---|---|---|---|
+| `llm_inconsistent` | 0 | 0 | Nothing to explain |
+| `revision_order_violation` | - | 0 | Nothing to explain |
+| `case_failed` | 0 | 0 | Nothing to explain |
+| `chat_failed` | 0 | 0 | Nothing to explain (no S6 run in this round) |
+
+### Defects
+
+- **Q6.2: resolved.** "Dzień dobry" is at the top after entry on both viewports, stable for 12 s.
+- **Q6.1: resolved.** E12 passes in the E2E run (32 passed).
+- **Q6.3 (new, manual M7):** The "Zmieniona ocena" revision block appears on a channel correction even when the decision is unchanged ("Poprzednia ocena: Wymaga uzupełnienia. Nowa ocena: Wymaga uzupełnienia."). Brief: header only when the decision changes. Evidence: screenshot 08 (1920), 360 run. Also the block label is shown twice (badge plus heading). Needs a spec decision for the same-decision case, then a fix.
+- Observation: Q5.1 at bottom at 360 leaves a 17 px gap after a reply (see table).
+- Observation: M7 decisions vary between runs for the same input (LLM variance); not counted.
+- Driver note: the Q5.1 wheel position was fixed (x=960 was outside a 360 px viewport). The 360 scroll-up result above comes from the fixed driver.
+- Not verified in run 2: Q5.5 progress screen (driver miss), M1 section and disclaimer content (driver does not assert them).
