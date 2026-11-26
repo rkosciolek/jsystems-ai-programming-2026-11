@@ -52,3 +52,64 @@ Run 2026-11-26 on `feat/poc-app` HEAD 119d515 (detached worktree `../hsd-q4`), o
 ## Files
 
 `01` to `21` `*.png` in this folder (`<NN>-<scenario>-<server>-<viewport>.png`); logs in `app/var/q4/`. Servers started by this run were stopped; ports 3201, 3202, 3206, 3207 are free.
+
+---
+
+# Run 2 (2026-11-26, branch HEAD a459748)
+
+Isolated detached worktree `../hsd-q4b` (removed afterwards), one `npm run build`, servers S1 3201 (fast-only), S2 3202 (llm-only), S6 3206 (invalid `LLM_MODEL`), S7 3207 (`CASE_TTL_MS=5000`), real OpenRouter calls, Playwright (headless Chromium, scripted through the Playwright library), real photos from `assets/example-images/`, synthetic data. Logs: `app/var/q4b/s1|s2|s6|s7.jsonl` and `*.server.log` (gitignored). Screenshots: `run2-NN-*.png` in this folder.
+
+**Verdict: PASS for the run-1 defects Q4.1 to Q4.5 (all five fixed); gate passes with two low-severity new findings (Q4.6 usability of the 360 px message area, Q4.7 stale error next to expiry) and one low observation on scrolling (Q4.8).**
+
+| Check | Result |
+|---|---|
+| `npm run lint` | pass |
+| `npm run typecheck` | pass |
+| `npm test` | pass: 27 files, 479 tests |
+| `npm run build` | pass (`/`, `/_not-found`, `/api/cases`, `/api/chat`) |
+| Startup | all four servers "Ready" in 0.9 to 1.2 s |
+| Console | 0 errors in all flows, except one expected network 404 for `/api/chat` on the expired case (S7) |
+
+## Run-1 defects
+
+| Defect | Result | Evidence |
+|---|---|---|
+| **Q4.1** document height / blank page | **fixed** | 1920x1080 (S2, 5 replies): `documentElement.scrollHeight` 1080 = viewport at every step; `[role=log]` 1.2k to 2.1k px inside a bounded inner scroller (408 px). 360x740 (S1, 4 replies): `scrollHeight` 740 = viewport, `scrollWidth` 360, `scrollY` 0, textarea fixed at top 594. No blank page. Shots 01 to 03, 13 to 17. |
+| **AC-40** scroll button | **fixed (with note Q4.8)** | After scrolling up 500 px in the message scroller the button "Przewiń do najnowszej wiadomości" gets `opacity 1`, `pointer-events auto`; at the bottom it is `opacity 0`; click returns to the bottom (`scrollTop` 1870 -> 2670 = `scrollHeight - clientHeight`). Shots 09 to 12. |
+| **Q4.2** revised message text | **fixed** | S2 `FGVC`: "Zmieniona ocena" + "Poprzednia ocena: Wymaga uzupełnienia. Nowa ocena: Wymaga uzupełnienia." + reason + disclaimer. Escalation turn: "Poprzednia ocena: Wymaga uzupełnienia. Nowa ocena: Przekazano do specjalisty." + reason + disclaimer; badge changes to "Przekazano do specjalisty". One `decision_revised` per turn, 0 `revision_rejected`, 0 `revision_order_violation`. Shots 06, 07. Caveat: the previous and new decision were equal in the correction turn because the wrong-device photo kept `needs_info` (a legitimate revision with a corrected channel). |
+| **Q4.3** year 0326 | **fixed** | Form shows "Podaj poprawną datę zakupu." for `0326-03-26` and `1899-01-01`; `2000-01-01` passes the date check. No case created. Shot 18. (UI only; the API was not called directly.) |
+| **Q4.4** summary / expired reset | **fixed** | After the channel correction the summary shows "Miejsce zakupu: Sklep internetowy" (was "Sklep stacjonarny" at creation). Expired case (S7): "Nowa sprawa" goes straight to the empty form, no confirm dialog (0 alert dialogs, 0 native). Shots 21, 22. |
+| **Q4.5** empty box above typing indicator | **fixed** | During a reply the only item under the user message is one compact "Asystent pisze..." box with a spinner; no empty bordered box. Shot 02, 15. |
+
+## Scenarios
+
+| Scenario | Case | Srv | Result | Evidence |
+|---|---|---|---|---|
+| **M6** | HSD-20261126-2RTL | S2 | pass | Date question -> "Podałeś datę zakupu 26.03.2026."; replacement question answered from the policy; weather -> one short deflection with an offer to continue; phone "500 600 700" not repeated, "numer telefonu nie jest potrzebny w tym kanale". Shots 01 to 03. |
+| **M7a** no new facts | HSD-20261126-7P8K (and Y464, 0J0K) | S2 | pass | "Proszę zmienić decyzję" -> "Sama prośba ... nie dostarcza nowych informacji ... pozostaje bez zmian", badge unchanged, no log event. Shot 04. |
+| **M7b/c** correction, escalation | HSD-20261126-FGVC | S2 | pass | "Kupiłem w sklepie internetowym" -> `decision_revised` + summary channel updated; "Proszę o kontakt z pracownikiem" -> `decision_revised`, badge "Przekazano do specjalisty". Shots 05 to 07. The photo (a different phone than typed) kept the first decision at "Wymaga uzupełnienia", so no accepted/rejected flip was seen in this run. |
+| **M9** chat failure | HSD-20261126-OJCR | S6 | pass | Inline "Nie udało się wysłać odpowiedzi." + **Ponów**; after retry still exactly 1 copy of the user message and one error; no provider/model/stack text; 0 console errors. 2 x `chat_failed` in the log (one per attempt). Shots 19, 20. |
+| **M10** expiry | HSD-20261126-3RWC | S7 | pass (note Q4.7) | After 6.5 s: "Sprawa wygasła. Rozpocznij nową sprawę.", textarea and Wyślij disabled, Nowa sprawa -> empty form. Shots 21, 22. |
+| **M11** | 6 cases | S1 | pass | Anuluj keeps the chat; confirm gives an empty form (shot 23). Reload with open chat: `beforeunload` dialog; dismiss keeps the chat, accept gives an empty form (shot 24). Keyboard only (Tab, Space, Enter, file chooser via Enter): radio, category, model, date, channel, description, photo, submit, chat input, Wyślij, Nowa sprawa and the dialog (focus on Anuluj) reachable; the dialog confirm returns an empty form (shot 25). |
+| **M14** | HSD-20261126-KOUQ, 9J96 | S2 | pass | English description -> Polish first message and replies; "Czy mogę dosłać jeszcze jedno zdjęcie?" -> Nowa sprawa explained, 0 `input[type=file]`, no attach button. Scroll up while the reply is pending: view not moved for the 18 s the typing indicator was shown, button visible. Shots 08 to 12. |
+| **360 px** | HSD-20261126-LA1D | S1 | pass for layout, see Q4.6 | Summary collapsed (`aria-expanded=false`), `scrollWidth` 360, badge with icon and label, no raw `##` or `**`, disclaimer readable. Shots 13 to 17. |
+
+## Log grep (`llm_inconsistent`, `revision_order_violation`, `case_failed`, `chat_failed`)
+
+| Hit | Explanation |
+|---|---|
+| `chat_failed` x2, S6 `OJCR` | Expected (`LLM_MODEL=invalid/does-not-exist`, provider 400): first send and the Ponów retry. |
+| `llm_inconsistent`, `revision_order_violation`, `case_failed` | 0 hits in s1, s2, s6, s7. |
+| `decision_revised` x2, S2 `FGVC` | Intended: one per turn (correction, escalation). No `revision_rejected` at all. |
+| Server logs | Only the stack of the expected S6 provider error. |
+
+## New findings
+
+- **Q4.6 (medium, UI usability) The chat message area is too small at 360 px.** On a 360x740 viewport the message scroller is 186 px high (25 % of the screen; the header with badge, "Nowa sprawa" and the summary heading take the rest), so about 3 lines of a reply are visible and the scroll button overlays them (shot 16). With "Szczegóły sprawy" expanded the scroller height is 0 and the page scrolls (`scrollHeight` 931, shot 17). Works, but is cramped for reading answers; suggest a taller minimum (for example `min-h` about 45 dvh), a smaller header, or auto-collapse of the summary after the first message.
+- **Q4.7 (low, UI) Stale send error next to the expiry message.** On the expired case (S7) the page shows "Sprawa wygasła. Rozpocznij nową sprawę." and also "Nie udało się wysłać odpowiedzi." with **Ponów** (shot 21); Ponów can never succeed there. Hide the retry for the expired state.
+- **Q4.8 (low, UI, observation) The view jumps to the bottom when the pending reply arrives.** If the user scrolls up while the typing indicator is shown, the view stayed put for 18 s, but at the moment the reply appeared `scrollTop` jumped to the bottom (1748 -> 2670). The reply arrives as one block here, so true mid-stream scrolling could not be exercised; AC-40 was verified on the typing phase and on the button only.
+- **MQ4.1 (model quality, low).** In S2 `9J96` the assistant appended "Korekta do poprzedniej wiadomości: ... termin 14 dni nie wynika z regulaminu" after a list: it corrects its own earlier statement in a new message (the earlier text said 14 days). Tone: no "Pan/Pani", no emoji.
+
+## Files
+
+`run2-01` to `run2-25` `*.png` (`run2-NN-<scenario>-<viewport>.png`: 1920 px except 13 to 17 at 360 px); logs in `app/var/q4b/`. Servers of this run stopped, ports 3201, 3202, 3206, 3207 free.
