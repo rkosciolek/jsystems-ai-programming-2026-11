@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createReplayFetch, type ReplayFetch } from "../../helpers/replay-fetch";
+import { applyMutation, createReplayFetch, loadRecording, type ReplayFetch } from "../../helpers/replay-fetch";
 
 const PHOTO_DIR = path.resolve(process.cwd(), "../assets/example-images");
 const TODAY = new Date("2026-11-26T12:00:00.000Z");
@@ -205,6 +205,47 @@ describe("POST /api/cases replay integration", () => {
     expect((await events(response)).at(-1)?.type).toBe("result");
     expect(replay.requests).toHaveLength(3);
     expect(await readLog()).toContain('"classifierError":"upstream"');
+  });
+
+  it("E2E.1: a Jev 400 plus one invalid vision output still ends in the LLM path (vision retried once)", async () => {
+    const inner = createReplayFetch([
+      "jev-error-unknown-model",
+      "llm-vision-complaint-laptop-1",
+      "llm-vision-complaint-laptop-1",
+      "llm-decision-complaint-laptop-1",
+    ]);
+    let call = 0;
+    const flaky = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      call += 1;
+      if (call !== 2) return inner(input, init);
+      // Declared mutation (MUTATIONS.md): first vision reply carries content that fails ImageAnalysisSchema.
+      await inner(input, init);
+      const recording = await loadRecording("llm-vision-complaint-laptop-1");
+      const mutated = applyMutation(JSON.parse(recording.body.toString("utf8")), "choices.0.message.content", "{\"usable\":\"maybe\"}");
+      return new Response(JSON.stringify(mutated), { status: recording.meta.status, headers: recording.meta.headers });
+    }) as ReplayFetch;
+    flaky.requests = inner.requests;
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const response = await postCase(makeForm({}, await photo()), flaky);
+
+    expect((await events(response)).at(-1)?.type).toBe("result");
+    const log = await readLog();
+    expect(log).toContain('"classifierError":"upstream"');
+    expect(log).toContain('"path":"llm"');
+  });
+
+  it("E2E.1: an unexpected error stays internal, logs classifierError and the error class to stderr", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const replay = createReplayFetch(["jev-error-unknown-model", "llm-vision-complaint-laptop-1", "llm-vision-complaint-laptop-1"], {
+      mutations: [{ recordingName: "llm-vision-complaint-laptop-1", path: "choices.0.message.content", value: "{\"usable\":\"maybe\"}" }],
+    });
+    const response = await postCase(makeForm({}, await photo()), replay);
+
+    expect((await events(response)).at(-1)).toEqual({ type: "error", code: "internal" });
+    const log = await readLog();
+    expect(log).toContain('"failureCode":"internal"');
+    expect(log).toContain('"classifierError":"upstream"');
+    expect(errorSpy.mock.calls.flat().join(" ")).toContain("LlmError");
   });
 
   it("routes a low-certainty Jev answer to the LLM using the declared recording mutation", async () => {

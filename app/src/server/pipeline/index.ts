@@ -159,10 +159,17 @@ export async function runCasePipeline(input: CaseInput, photo: Buffer, opts: Run
       const visionStartedAt = performance.now();
       // A Jev outage still uses the vision model; an empty result means there are no Jev hints.
       const visionClassifier = classifier ?? { answers: {}, model: env.JEV_MODEL };
-      imageAnalysis = await analyzeImage(input, image.jpegBuffer, visionClassifier, opts.signal, {
+      const callVision = () => analyzeImage(input, image.jpegBuffer, visionClassifier, opts.signal, {
         fetch: fetcher,
         apiKey: env.OPENROUTER_API_KEY,
       });
+      try {
+        imageAnalysis = await callVision();
+      } catch (error) {
+        // E2E.1: structured vision output is intermittently invalid; one retry before failing the case.
+        if (!(error instanceof LlmError) || error.kind !== "invalid_output" || opts.signal.aborted) throw error;
+        imageAnalysis = await callVision();
+      }
       latencyMs.vision = elapsedSince(visionStartedAt);
     }
 
@@ -257,7 +264,12 @@ export async function runCasePipeline(input: CaseInput, photo: Buffer, opts: Run
       return;
     }
 
-    await logDecision({ ...logBase(), event: "case_failed", step, failureCode });
+    if (failureCode === "internal") {
+      const errorClass = error instanceof Error ? error.constructor.name : typeof error;
+      const kind = (error as { kind?: unknown } | null)?.kind;
+      console.error("case_failed internal", errorClass, error instanceof Error ? error.name : "", kind ?? "", step);
+    }
+    await logDecision({ ...logBase(), event: "case_failed", step, failureCode, classifierError });
     opts.emit({ type: "error", code: failureCode });
   }
 }
