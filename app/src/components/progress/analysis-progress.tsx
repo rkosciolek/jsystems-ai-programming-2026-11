@@ -35,7 +35,9 @@ export function AnalysisProgress({ draft, completedSteps, thumbnailUrl }: Analys
   const caseTypeLabel = draft.caseType ? pl.form.caseType[draft.caseType].label : "";
 
   return (
-    <section className="mx-auto flex w-full max-w-[720px] flex-col gap-6 px-4 py-8">
+    <main className="mx-auto flex w-full max-w-[720px] flex-col gap-6 px-4 py-8">
+      <h1 className="text-3xl font-bold text-primary">{pl.progress.title}</h1>
+
       <ol aria-live="polite" className="flex flex-col gap-3">
         {STEPS.map((step) => {
           const status = statusFor(step, completedSteps);
@@ -70,6 +72,6 @@ export function AnalysisProgress({ draft, completedSteps, thumbnailUrl }: Analys
           </dd>
         )}
       </dl>
-    </section>
+    </main>
   );
 }

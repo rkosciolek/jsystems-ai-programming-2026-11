@@ -109,3 +109,13 @@ describe("AnalysisProgress thumbnail alignment (Q2.3)", () => {
     cleanup();
   });
 });
+
+describe("Q5.5 progress screen landmarks", () => {
+  afterEach(() => cleanup());
+  it("has an h1 from pl.progress.title inside a main landmark", () => {
+    render(<AnalysisProgress draft={draft} completedSteps={[]} thumbnailUrl="" />);
+    expect(screen.getByRole("main")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Analizujemy Twoje zgłoszenie" })).toBeInTheDocument();
+    expect(pl.progress.title).toBe("Analizujemy Twoje zgłoszenie");
+  });
+});

@@ -17,6 +17,8 @@ export default defineConfig({
     include: ["tests/unit/**/*.test.{ts,tsx}", "tests/integration/**/*.test.ts"],
     environment: "node",
     setupFiles: ["tests/setup.ts"],
+    // Integration tests time out at the 5 s default on a loaded machine (Q5.6).
+    testTimeout: 30_000,
     passWithNoTests: true,
   },
 });

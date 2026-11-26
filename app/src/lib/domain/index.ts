@@ -89,7 +89,7 @@ export function makeCaseInputSchema(today: string) {
         ctx.addIssue({
           code: "custom",
           path: ["description"],
-          message: value.caseType === "complaint" ? pl.errors.description : pl.errors.descriptionTooLong,
+          message: pl.errors.descriptionTooLong,
         });
       } else if (value.caseType === "complaint" && length < 20) {
         ctx.addIssue({ code: "custom", path: ["description"], message: pl.errors.description });

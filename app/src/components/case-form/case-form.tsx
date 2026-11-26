@@ -132,7 +132,7 @@ export const clientSchema = z
     const alreadyReported = !parsed.success && parsed.error.issues.some((issue) => issue.path[0] === "description");
     if (!alreadyReported) {
       if (description.length > 2000) {
-        report(["description"], caseType === "complaint" ? pl.errors.description : pl.errors.descriptionTooLong);
+        report(["description"], pl.errors.descriptionTooLong);
       } else if (caseType === "complaint" && description.length < 20) {
         report(["description"], pl.errors.description);
       }

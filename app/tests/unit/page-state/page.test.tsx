@@ -93,6 +93,7 @@ describe("Home page state wiring", () => {
     mockedSubmit.mockImplementation(() => events());
     render(<Home />);
     expect(screen.getByRole("heading", { name: pl.form.title })).toBeInTheDocument();
+    expect(screen.getByRole("main")).toContainElement(screen.getByRole("heading", { name: pl.form.title }));
     expect(screen.getByText(pl.form.intro)).toBeInTheDocument();
     expect(caseForm()).not.toBeNull();
   });
@@ -112,6 +113,7 @@ describe("Home page state wiring", () => {
     expect(mockedSubmit).toHaveBeenCalledTimes(1);
     expect(caseForm()).toBeNull();
     expect(screen.getByText(pl.progress.upload)).toBeInTheDocument();
+    expect(screen.getByRole("main")).toContainElement(screen.getByText(pl.progress.upload));
     release();
     await waitFor(() => expect(screen.getByText(pl.progress.upload).closest("li")).toHaveAttribute("data-status", "done"));
   });
@@ -133,6 +135,7 @@ describe("Home page state wiring", () => {
     expect(await screen.findByText(caseId)).toBeInTheDocument();
     expect(screen.getByRole("img", { name: `Decyzja: ${pl.decisions.accepted}` })).toBeInTheDocument();
     expect(screen.getByText("Dzień dobry, wstępnie zaakceptowano.")).toBeInTheDocument();
+    expect(screen.getByRole("main")).toContainElement(screen.getByText("Dzień dobry, wstępnie zaakceptowano."));
     expect(caseForm()).toBeNull();
     expect(URL.createObjectURL).toHaveBeenCalled();
   });
@@ -255,4 +258,3 @@ describe("Home page state wiring", () => {
     expect(afterReset.defaultPrevented).toBe(false);
   });
 });
-

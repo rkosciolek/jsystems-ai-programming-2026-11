@@ -57,6 +57,7 @@ export const pl = {
     caseExpired: "Sprawa wygasła. Rozpocznij nową sprawę.",
   },
   progress: {
+    title: "Analizujemy Twoje zgłoszenie",
     upload: "Przesyłanie zdjęcia",
     analysis: "Analiza zdjęcia",
     decision: "Przygotowanie oceny",

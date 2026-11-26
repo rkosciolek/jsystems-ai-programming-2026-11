@@ -385,8 +385,8 @@ describe("ChatView", () => {
     renderChat();
     await userEvent.setup().click(screen.getByRole("button", { name: "Szczegóły sprawy" }));
 
-    expect(screen.getByText("2026-11-10")).toBeInTheDocument();
-    expect(screen.queryByText("2026-11-01")).not.toBeInTheDocument();
+    expect(screen.getByText("10.11.2026")).toBeInTheDocument();
+    expect(screen.queryByText("01.11.2026")).not.toBeInTheDocument();
     expect(screen.getByText(pl.form.channel.store)).toBeInTheDocument();
     expect(screen.queryByText(pl.form.channel.online)).not.toBeInTheDocument();
   });

@@ -8,6 +8,7 @@ import { Streamdown } from "streamdown";
 import type { CaseSummary, CaseUIMessage, Decision } from "@/lib/domain";
 import { CATEGORIES, DECISION_LABELS, DecisionDataSchema, type CategoryId } from "@/lib/domain";
 import { pl } from "@/lib/i18n/pl";
+import { formatDatePl, isNearBottom } from "./scroll";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -151,7 +152,7 @@ function CaseSummaryPanel({ summary, thumbnailUrl }: { summary: CaseSummary; thu
             <dt className="font-bold text-primary">{pl.form.labels.model}</dt>
             <dd>{summary.model}</dd>
             <dt className="font-bold text-primary">{pl.form.labels.purchaseDate}</dt>
-            <dd>{summary.purchaseDate}</dd>
+            <dd>{formatDatePl(summary.purchaseDate)}</dd>
             <dt className="font-bold text-primary">{pl.form.labels.channel}</dt>
             <dd>{summary.channel === "online" ? pl.form.channel.online : pl.form.channel.store}</dd>
           </dl>
@@ -169,6 +170,9 @@ function CaseSummaryPanel({ summary, thumbnailUrl }: { summary: CaseSummary; thu
 export function ChatView({ caseId, caseSummary, thumbnailUrl, firstMessage, onNewCase }: ChatViewProps) {
   const [input, setInput] = useState("");
   const [caseExpired, setCaseExpired] = useState(false);
+  // AC-40: a reply scrolls the list only while the user is at the bottom (updated on every scroll).
+  // Start at the top of the first message; later scroll events and sends update this state.
+  const [stickToBottom, setStickToBottom] = useState(false);
   const transport = useMemo(
     () =>
       new DefaultChatTransport<CaseUIMessage>({
@@ -208,6 +212,7 @@ export function ChatView({ caseId, caseSummary, thumbnailUrl, firstMessage, onNe
       if (!input.trim() || sendDisabled) return;
       const text = input;
       setInput("");
+      setStickToBottom(true);
       void sendMessage({ text });
     },
     [input, sendDisabled, sendMessage],
@@ -260,12 +265,12 @@ export function ChatView({ caseId, caseSummary, thumbnailUrl, firstMessage, onNe
         </div>
       )}
 
-      <MessageScrollerProvider autoScroll defaultScrollPosition="end">
+      <MessageScrollerProvider autoScroll defaultScrollPosition="start">
         <MessageScroller data-testid="chat-message-scroller" className="min-h-[14rem] flex-1">
-          <MessageScrollerViewport aria-label={pl.chat.ui.conversation} tabIndex={0}>
+          <MessageScrollerViewport aria-label={pl.chat.ui.conversation} tabIndex={0} onScroll={(event) => { setStickToBottom(isNearBottom(event.currentTarget)); }}>
             <MessageScrollerContent role="log" aria-label={pl.chat.ui.conversation} className="gap-4 py-3">
               {visibleMessages.map((message, index) => (
-                <MessageScrollerItem key={message.id} messageId={message.id} scrollAnchor={!isAssistantWriting && index === visibleMessages.length - 1}>
+                <MessageScrollerItem key={message.id} messageId={message.id} scrollAnchor={!isAssistantWriting && index === visibleMessages.length - 1 && stickToBottom}>
                   <MessageGroup>
                     <Message align={message.role === "user" ? "end" : "start"}>
                       <MessageContent className={message.role === "user" ? "items-end" : "items-start"}>

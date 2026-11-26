@@ -26,6 +26,7 @@ const MSG_MODEL = "Podaj nazwę lub model urządzenia (2–100 znaków).";
 const MSG_INVALID_DATE = "Podaj poprawną datę zakupu.";
 const MSG_FUTURE = "Data zakupu nie może być z przyszłości.";
 const MSG_DESCRIPTION = "Opisz problem (min. 20 znaków).";
+const MSG_DESCRIPTION_TOO_LONG = "Opis może mieć maksymalnie 2000 znaków.";
 
 const validComplaint = {
   caseType: "complaint",
@@ -175,10 +176,10 @@ describe("makeCaseInputSchema", () => {
       expect(schema().safeParse({ ...validComplaint, description: "a".repeat(n) }).success).toBe(true);
     });
 
-    it.each([19, 2001])("rejects %i characters with the AC-07 message", (n) => {
+    it.each([19, 2001])("rejects %i characters with the appropriate limit message", (n) => {
       const result = schema().safeParse({ ...validComplaint, description: "a".repeat(n) });
       expect(result.success).toBe(false);
-      expect(messagesAt(result, "description")).toContain(MSG_DESCRIPTION);
+      expect(messagesAt(result, "description")).toContain(n < 20 ? MSG_DESCRIPTION : MSG_DESCRIPTION_TOO_LONG);
     });
 
     it("rejects an empty description with the AC-07 message", () => {
