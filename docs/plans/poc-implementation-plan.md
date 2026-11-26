@@ -216,7 +216,9 @@ The orchestrator runs on the most expensive model, so it **orchestrates and does
 | E2E runs (T19), T18 checks, T23 video | Haiku or Sonnet subagent | Read the report |
 | Diff review | `git diff --stat` + tests; full diff only for hotspots | Deep review stays in T21 |
 
-Briefs point to document sections by path and § number instead of pasting excerpts; workers read them themselves. The orchestrator keeps: T04 contracts, T09a prompts, briefs, decisions, commits, issue updates.
+Briefs point to document sections by path and § number instead of pasting excerpts; workers read them themselves.
+
+**Owner update (2026-11-26, later the same day):** no Sonnet subagents. Every role above that named Sonnet (QA gates, recordings, fix rounds) now goes to **Luna via OpenCode** (logic, UI, QA with `playwright-cli` through its bash tool) or a **Haiku** subagent (mechanical runs and checks). Earlier gates Q1–Q5 and fix rounds were run by Sonnet subagents before this instruction. The orchestrator keeps: T04 contracts, T09a prompts, briefs, decisions, commits, issue updates.
 
 **Concurrency:** at most 3 workers at once, only on disjoint files. Each brief lists the concurrent tasks. One checkout; no worktree.
 

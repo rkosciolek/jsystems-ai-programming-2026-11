@@ -64,3 +64,7 @@ Port 3604, `OPENROUTER_API_KEY` unset, no `--env-file`. The Bash call that would
 ## Stopped
 
 Ports 3601-3603 stopped (PIDs 522897, 522899, 522901, `next-server`). Afterwards `fetch` to each port fails. Nothing was left running.
+
+## TAC-04 (manual, owner, 2026-11-26)
+
+`next start -p 3999` with `OPENROUTER_API_KEY` set to an empty value: startup failed with an error naming `OPENROUTER_API_KEY` (no value shown). Run by the repository owner because the worker was not permitted to start a server without the key. **PASS.**
