@@ -357,6 +357,7 @@ export function CaseForm({
           <Input
             id="purchaseDate"
             type="date"
+            min="2000-01-01"
             max={todayInWarsaw()}
             disabled={formDisabled}
             required

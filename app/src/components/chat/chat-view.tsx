@@ -74,6 +74,27 @@ function latestDecision(messages: CaseUIMessage[], initialDecision: Decision): D
   return initialDecision;
 }
 
+type Corrections = { purchaseDate?: string; channel?: CaseSummary["channel"] };
+
+/** Corrections from the newest data-decision part (Q4.4). Read defensively: the schema field is optional. */
+function latestCorrections(messages: CaseUIMessage[]): Corrections {
+  for (let messageIndex = messages.length - 1; messageIndex >= 0; messageIndex -= 1) {
+    const parts = messages[messageIndex]?.parts ?? [];
+    for (let partIndex = parts.length - 1; partIndex >= 0; partIndex -= 1) {
+      const part = parts[partIndex];
+      if (part?.type !== "data-decision") continue;
+      const raw: unknown = (part.data as { corrections?: unknown }).corrections;
+      if (typeof raw !== "object" || raw === null) return {};
+      const { purchaseDate, channel } = raw as Record<string, unknown>;
+      return {
+        ...(typeof purchaseDate === "string" ? { purchaseDate } : {}),
+        ...(channel === "online" || channel === "store" ? { channel } : {}),
+      };
+    }
+  }
+  return {};
+}
+
 function AgentMessage({ message }: { message: CaseUIMessage }) {
   const text = messageText(message);
   const disclaimerIndex = text.lastIndexOf(pl.disclaimer);
@@ -173,6 +194,8 @@ export function ChatView({ caseId, caseSummary, thumbnailUrl, firstMessage, onNe
     dataPartSchemas: { decision: DecisionDataSchema },
   });
   const decision = latestDecision(messages, firstMessage.metadata?.decision ?? "needs_info");
+  const effectiveSummary = { ...caseSummary, ...latestCorrections(messages) };
+  const visibleMessages = messages.filter((message) => message.role !== "assistant" || messageText(message).trim().length > 0);
   const isBusy = status === "submitted" || status === "streaming";
   const latestMessage = messages[messages.length - 1];
   const isAssistantWriting = isBusy && (status === "submitted" || latestMessage?.role !== "assistant" || !messageText(latestMessage));
@@ -197,7 +220,7 @@ export function ChatView({ caseId, caseSummary, thumbnailUrl, firstMessage, onNe
   };
 
   return (
-    <main className="mx-auto flex min-h-[calc(100dvh-5rem)] w-full max-w-[840px] flex-col gap-4 px-4 py-6 sm:py-8">
+    <main className="mx-auto flex h-[calc(100dvh-4rem)] min-h-[30rem] w-full max-w-[840px] flex-col gap-4 px-4 py-4 sm:py-6 md:h-[calc(100dvh-5rem)]">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
         <div className="min-w-0">
           <h1 className="break-all text-xl font-bold text-primary sm:text-2xl">{caseId}</h1>
@@ -207,6 +230,9 @@ export function ChatView({ caseId, caseSummary, thumbnailUrl, firstMessage, onNe
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <DecisionBadge decision={decision} />
+          {caseExpired ? (
+            <Button type="button" onClick={onNewCase}>{pl.chat.newCase}</Button>
+          ) : (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button type="button">{pl.chat.newCase}</Button>
@@ -222,10 +248,11 @@ export function ChatView({ caseId, caseSummary, thumbnailUrl, firstMessage, onNe
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          )}
         </div>
       </header>
 
-      <CaseSummaryPanel summary={caseSummary} thumbnailUrl={thumbnailUrl} />
+      <CaseSummaryPanel summary={effectiveSummary} thumbnailUrl={thumbnailUrl} />
 
       {caseExpired && (
         <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive px-4 py-3 text-destructive">
@@ -234,11 +261,11 @@ export function ChatView({ caseId, caseSummary, thumbnailUrl, firstMessage, onNe
       )}
 
       <MessageScrollerProvider autoScroll defaultScrollPosition="end">
-        <MessageScroller data-testid="chat-message-scroller" className="min-h-[18rem] flex-1">
+        <MessageScroller data-testid="chat-message-scroller" className="flex-1">
           <MessageScrollerViewport aria-label={pl.chat.ui.conversation} tabIndex={0}>
             <MessageScrollerContent role="log" aria-label={pl.chat.ui.conversation} className="gap-4 py-3">
-              {messages.map((message, index) => (
-                <MessageScrollerItem key={message.id} messageId={message.id} scrollAnchor={index === messages.length - 1}>
+              {visibleMessages.map((message, index) => (
+                <MessageScrollerItem key={message.id} messageId={message.id} scrollAnchor={!isAssistantWriting && index === visibleMessages.length - 1}>
                   <MessageGroup>
                     <Message align={message.role === "user" ? "end" : "start"}>
                       <MessageContent className={message.role === "user" ? "items-end" : "items-start"}>

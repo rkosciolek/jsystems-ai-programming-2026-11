@@ -339,4 +339,63 @@ describe("ChatView", () => {
     expect(screen.getByTestId("chat-message-scroller")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Przewiń do najnowszej wiadomości" })).toBeInTheDocument();
   });
+
+  it("shows the corrected purchase date and channel from the latest data-decision", async () => {
+    setChatState({
+      messages: [
+        firstMessage,
+        {
+          ...assistantMessage("Zmieniona ocena.", "accepted"),
+          parts: [
+            { type: "data-decision", id: "d1", data: { decision: "accepted", previous: "rejected", corrections: { purchaseDate: "2026-11-10", channel: "store" } } },
+            { type: "text", text: "Zmieniona ocena." },
+          ],
+        },
+      ],
+    });
+    renderChat();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Szczegóły sprawy" }));
+
+    expect(screen.getByText("2026-11-10")).toBeInTheDocument();
+    expect(screen.queryByText("2026-11-01")).not.toBeInTheDocument();
+    expect(screen.getByText(pl.form.channel.store)).toBeInTheDocument();
+    expect(screen.queryByText(pl.form.channel.online)).not.toBeInTheDocument();
+  });
+
+  it("resets an expired case with Nowa sprawa without a confirmation dialog", async () => {
+    const onNewCase = vi.fn();
+    renderChat({ onNewCase });
+    const transport = chatMocks.useChat.mock.calls[0]?.[0].transport;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: "case_not_found" }), { status: 404, headers: { "Content-Type": "application/json" } })),
+    );
+    await act(async () => {
+      await transport.fetch("/api/chat", { method: "POST" });
+    });
+    await screen.findByText(pl.errors.caseExpired);
+
+    await userEvent.setup().click(screen.getByRole("button", { name: pl.chat.newCase }));
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(onNewCase).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not render an assistant message without visible text", () => {
+    setChatState({
+      messages: [firstMessage, userMessage("Dopytanie"), { id: "assistant-empty", role: "assistant", parts: [] }],
+      status: "submitted",
+    });
+    const { container } = renderChat();
+
+    expect(container.querySelector('[data-message-id="assistant-empty"]')).toBeNull();
+    expect(screen.getByRole("status", { name: "Asystent przygotowuje odpowiedź" })).toBeInTheDocument();
+  });
+
+  it("bounds the chat column to the viewport so only the message list scrolls", () => {
+    const { container } = renderChat();
+
+    expect(container.querySelector("main")?.className).toMatch(/h-\[calc\(100dvh-/);
+    expect(screen.getByTestId("chat-message-scroller").className).toContain("min-h-0");
+  });
 });

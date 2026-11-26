@@ -97,3 +97,10 @@ describe("Q2.3 text buttons are outlined pills", () => {
     void user;
   });
 });
+
+describe("Q4.3 purchase date lower bound", () => {
+  it("sets min=2000-01-01 on the date input", () => {
+    render(<CaseForm initialDraft={emptyDraft()} onSubmit={vi.fn()} />);
+    expect(screen.getByLabelText(pl.form.labels.purchaseDate)).toHaveAttribute("min", "2000-01-01");
+  });
+});
