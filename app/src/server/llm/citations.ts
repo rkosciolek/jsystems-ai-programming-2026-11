@@ -1,3 +1,5 @@
+import "server-only";
+
 // Expands policy section ranges and comma lists written by the decision LLM,
 // e.g. "§3 ust. 1–2", "§3 ust. 1-2" or "§2 ust. 1, 4", into single-section citations.
 
