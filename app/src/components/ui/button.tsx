@@ -10,7 +10,7 @@ const buttonVariants = cva(
       variant: {
         // Brand CTA: outlined pill (white fill, 1px accent border, navy bold text). No filled buttons.
         default:
-          "rounded-[22px] border-accent bg-background font-bold text-primary hover:bg-muted disabled:border-border disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100",
+          "rounded-[22px] border-accent bg-card font-bold text-primary hover:bg-muted disabled:border-border disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100",
         outline:
           "rounded-lg border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground",
         secondary:
