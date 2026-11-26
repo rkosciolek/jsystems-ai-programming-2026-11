@@ -144,3 +144,59 @@ Servers: S1 3921 fast-only (`app/var/q6b/s1.jsonl`), S2 3922 llm-only (`app/var/
 - Observation: M7 decisions vary between runs for the same input (LLM variance); not counted.
 - Driver note: the Q5.1 wheel position was fixed (x=960 was outside a 360 px viewport). The 360 scroll-up result above comes from the fixed driver.
 - Not verified in run 2: Q5.5 progress screen (driver miss), M1 section and disclaimer content (driver does not assert them).
+
+## 10. Run 3 (2026-11-26, after the Q6.3 fix)
+
+Servers: S1 3931 fast-only (`app/var/q6c/s1.jsonl`), S2 3932 llm-only (`app/var/q6c/s2.jsonl`), both from `app/` with `next start`; both stopped afterwards, ports 3931 and 3932 confirmed closed. Driver: `app/var/q6c/smoke3.mjs` (VP=1920 and VP=360). Logs: `app/var/q6c/`. Screenshots: `run3-*.png` in this folder.
+
+**Verdict: PASS.** Q6.1, Q6.2 and Q6.3 are resolved in the paths exercised. The same-decision revision path (Q6.3) was not produced live in this run (see M7a below); it is covered by the unit and integration tests from the fix.
+
+### Static and E2E
+
+| Check | Result |
+|---|---|
+| `npm run lint` | pass (`app/var/q6c/lint.log`) |
+| `npm run typecheck` | pass (`app/var/q6c/typecheck.log`) |
+| `npm test` | 29 files, 517 tests, pass (`app/var/q6c/test.log`) |
+| `npm run build` | pass (`app/var/q6c/build.log`) |
+| `npx playwright test` | 31 passed, 1 flaky, 0 failed (`app/var/q6c/e2e.log`) |
+
+E2E per project: chromium (deterministic) 20 pass; chromium-model 1 pass + E3 @model flaky (failed attempt, passed on retry #1; model variance, same as MQ6.1); firefox 9 pass; firefox-model 1 pass. E12 (expired case, the Q6.1 test) passes.
+
+### Manual smoke
+
+| ID | Viewport | Result | Evidence |
+|---|---|---|---|
+| M7a channel correction (in-store return, 20 days, phone photo) | 1920 | PASS. Decision unchanged (`Wymaga uzupełnienia`), no revision, no "Zmieniona ocena" header, no chip. | RESULT M7-channel-correction |
+| M7a channel correction | 360 | PASS by the same rule. Decision unchanged, no revision, no header, no chip. | RESULT M7-channel-correction |
+| M7c channel correction (same input, fresh case) | 1920 | PASS. Revision produced with a decision change to `Wstępnie zaakceptowano`. Header "Zmieniona ocena" shown (DOM: badge and heading, same as runs 1 and 2). Summary panel shows the new decision. Revision block is above the screenshot viewport, so the block's own text was checked by DOM only. | run3-29-M7c-channel-correction-1920.png, RESULT M7c-revised-dom |
+| M7c channel correction | 360 | PASS by the rule. Decision unchanged (`Wymaga uzupełnienia`), no revision, no header, no chip. | RESULT M7c-revised-dom |
+| M7a insist without facts | 1920 / 360 | PASS. No revision, decision unchanged. | RESULT M7-insist |
+| M7a human request | 1920 / 360 | PASS. Escalated (`Przekazano do specjalisty`). | RESULT M7-human |
+| M7b unused item, no corrections | 1920 | PASS. No revision, not accepted. | RESULT M7b-unused-no-corrections |
+| M7b unused item, no corrections | 360 | PASS. Revision block shown with a decision change `Wstępnie odrzucono` to `Przekazano do specjalisty` (escalated by the model, not accepted). The driver's `decision` field read the old label from the revision text; the badge shows the new decision. Screenshot checked. | run3-10-M7b-unused-chat-360.png |
+| Q6.2 "Dzień dobry" at top after entry (Q52 driver) | 1920 | PASS. Greeting top 469 px at t0, t4 and t12 s, container scrollTop 0. | RESULT Q5.2-1920 |
+| Q6.2 greeting at entry | 360 | PASS. Greeting top 228 px. | RESULT Q5.2-360 |
+| Q5.1 scroll up while pending: position kept, scroll-to-latest button | 1920 | PASS. Top 1042 to 442, reply pending, button shown; after the reply top stays 442. | RESULT Q5.1-scroll-up-pending, Q5.1-after-reply |
+| Q5.1 scroll up while pending | 360 | PASS. Top 1598 to 998, button shown, position kept after reply. | RESULT Q5.1-scroll-up-pending (360) |
+| Q5.1 at bottom: new reply followed | 1920 / 360 | PASS. Gap 0 before and after the reply. The 360 gap of 17 px seen in run 2 did not recur. | RESULT Q5.1b-* |
+| Q5.3 summary dates DD.MM.RRRR | 1920 / 360 | PASS. `26.03.2026`, no ISO date left. | RESULT Q5.3-dates |
+| Q5.4 over 2000 characters | 1920 / 360 | PASS. Message visible, URL unchanged. | RESULT Q5.4-form |
+
+### Log grep (`app/var/q6c/`)
+
+| Event | s1 | s2 | Explanation |
+|---|---|---|---|
+| `llm_inconsistent` | 0 | 0 | Nothing to explain |
+| `revision_order_violation` | 0 | 0 | Nothing to explain |
+| `case_failed` | 0 | 0 | Nothing to explain |
+| `chat_failed` | 0 | 0 | Nothing to explain (no S6 run this round) |
+
+Logs are non-empty (s1 6 lines, s2 13 lines).
+
+### Defects
+
+- None new. Q6.1, Q6.2 and Q6.3 are resolved in the paths exercised.
+- Not exercised live: the same-decision revision case of Q6.3. In this run the 1920 M7c case changed the decision, and the 360 M7a and M7c cases produced no revision at all (LLM variance). Covered by the unit and integration tests.
+- Observation (not a defect): the "Zmieniona ocena" text appears in two DOM elements (badge and heading) on a real revision. This matches the design of runs 1 and 2.
+- Driver note: `smoke3.mjs` picks the first decision label in the page body, so in revision cases it can report the old decision. Check the badge, not the driver's `decision` field.
