@@ -10,7 +10,7 @@ import {
   tool,
   type InferUIMessageChunk,
 } from "ai";
-import type { CaseInput, CaseUIMessage, Decision, ReviseDecisionInput } from "@/lib/domain";
+import type { CaseInput, CaseUIMessage, Decision, ImageAnalysis, ReviseDecisionInput } from "@/lib/domain";
 import { makeReviseDecisionInputSchema } from "@/lib/domain";
 import { pl } from "@/lib/i18n/pl";
 import { getCaseStore, type CaseRecord } from "@/server/case-store";
@@ -71,6 +71,30 @@ function revisionFallbackText(revision: { decision: Decision; previous: Decision
   ].join("\n\n");
 }
 
+/** Server-built opening of a revision reply (AC-36): label plus previous and new decision. */
+function revisionHeaderText(revision: { decision: Decision; previous: Decision }): string {
+  const { revisedAssessment, revision: texts } = pl.chat;
+  return [
+    `**${revisedAssessment}**`,
+    `${texts.previous}: ${pl.decisions[revision.previous]}. ${texts.next}: ${pl.decisions[revision.decision]}.`,
+  ].join("\n\n");
+}
+
+/** True when the model text already opens with the label and names both decisions. */
+function modelTextStatesRevision(text: string, revision: { decision: Decision; previous: Decision }): boolean {
+  return (
+    text.trimStart().startsWith(`**${pl.chat.revisedAssessment}**`) &&
+    text.includes(pl.decisions[revision.previous]) &&
+    text.includes(pl.decisions[revision.decision])
+  );
+}
+
+const HEADER_DECISION_WINDOW_CHARS = 400;
+
+function normalizeWhitespace(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
 function nowIso(): string {
   return new Date().toISOString();
 }
@@ -114,6 +138,7 @@ export async function chatStream(
   let revisionToolInvoked = false;
   let appliedRevision: { decision: Decision; previous: Decision; reason: string } | undefined;
   let textAfterRevision = false;
+  let turnText = "";
   let chatFailureLogged = false;
 
   const queueLog = (entry: Record<string, unknown>) => {
@@ -151,6 +176,7 @@ export async function chatStream(
         stopWhen: isStepCount(2),
         prepareStep: () => (revisionToolInvoked ? { activeTools: [] } : {}),
         onChunk({ chunk }) {
+          if (chunk.type === "text-delta") turnText += chunk.text;
           if (chunk.type === "text-delta" && chunk.text.trim().length > 0) {
             sawTextBeforeToolCall = true;
             if (appliedRevision) textAfterRevision = true;
@@ -183,6 +209,18 @@ export async function chatStream(
               }
 
               const correctionEntries = Object.entries(toolInput.corrections ?? {});
+              // Orchestrator decision (policy §7): without a corrected purchase date or channel the customer
+              // only states unverifiable circumstances, which go to a specialist, never to acceptance.
+              if (toolInput.newDecision === "accepted" && correctionEntries.length === 0) {
+                queueLog({
+                  event: "revision_rejected",
+                  decision: toolInput.newDecision,
+                  previousDecision: current.currentDecision,
+                  facts: current.facts,
+                });
+                return { applied: false, violation: "accepted_requires_corrections" };
+              }
+
               const correctedInput: CaseInput = { ...current.input, ...(toolInput.corrections ?? {}) };
               const correctedFacts = computeFacts(correctedInput, date);
               const check = checkLlmOutcome(
@@ -190,7 +228,7 @@ export async function chatStream(
                 correctedFacts,
                 classifier,
                 { decision: toolInput.newDecision, citedSections: current.outcome.citedSections },
-                (current.imageAnalysis ?? null) as Parameters<typeof checkLlmOutcome>[4],
+                (current.imageAnalysis ?? null) as ImageAnalysis | null,
                 env.JEV_CONFIDENCE_THRESHOLD,
               );
               const noChange = toolInput.newDecision === current.currentDecision && correctionEntries.length === 0;
@@ -245,8 +283,8 @@ export async function chatStream(
                 previousDecision: previous,
                 corrections: toolInput.corrections,
                 facts: correctedFacts,
-                citedSections: updated.outcome.citedSections,
-                reasonCodes: updated.outcome.reasonCodes,
+                // The stored citations and reason codes describe the earlier decision, not this one.
+                reasonCodes: ["chat_revision"],
               });
               return { applied: true, previous };
             },
@@ -278,6 +316,27 @@ export async function chatStream(
         async start(controller) {
           const reader = child.getReader();
           let finishedSteps = 0;
+          // AC-36: after an applied revision the reply must open with the label and the previous and new
+          // decision. Model text is held until it is known to do so; otherwise a server header goes first.
+          let held: InferUIMessageChunk<CaseUIMessage>[] = [];
+          let heldText = "";
+          let headerResolved = false;
+          const flushHeld = (withHeader: boolean) => {
+            headerResolved = true;
+            if (withHeader && appliedRevision) {
+              const id = `${record.caseId}-revision-header`;
+              controller.enqueue({ type: "text-start", id });
+              controller.enqueue({ type: "text-delta", id, delta: revisionHeaderText(appliedRevision) });
+              controller.enqueue({ type: "text-end", id });
+            }
+            for (const chunk of held) controller.enqueue(chunk);
+            held = [];
+          };
+          const resolveHeld = () => {
+            if (headerResolved || held.length === 0) return;
+            // Whitespace-only text counts as no text: the code-built fallback follows after the merge.
+            flushHeld(heldText.trim().length > 0);
+          };
           try {
             while (true) {
               const { done, value } = await reader.read();
@@ -285,8 +344,20 @@ export async function chatStream(
               if (value.type === "finish-step") finishedSteps += 1;
               // Q4.2: drop a repeated revise_decision call from later steps; the tool already ran once.
               if (finishedSteps > 0 && revisionToolInvoked && value.type.startsWith("tool-input")) continue;
+              const isText = value.type === "text-start" || value.type === "text-delta" || value.type === "text-end";
+              if (appliedRevision && !headerResolved && isText) {
+                held.push(value);
+                if (value.type === "text-delta") {
+                  heldText += value.delta;
+                  if (modelTextStatesRevision(heldText, appliedRevision)) flushHeld(false);
+                  else if (heldText.length >= HEADER_DECISION_WINDOW_CHARS) flushHeld(true);
+                }
+                continue;
+              }
+              if (!isText) resolveHeld();
               controller.enqueue(value);
             }
+            resolveHeld();
             controller.close();
           } catch (error) {
             controller.error(error);
@@ -306,10 +377,12 @@ export async function chatStream(
           writer.write({ type: "text-delta", id: fallbackId, delta: revisionFallbackText(appliedRevision) });
           writer.write({ type: "text-end", id: fallbackId });
         }
-        const id = `${record.caseId}-revision-disclaimer`;
-        writer.write({ type: "text-start", id });
-        writer.write({ type: "text-delta", id, delta: `\n\n${pl.disclaimer}` });
-        writer.write({ type: "text-end", id });
+        if (!normalizeWhitespace(turnText).includes(normalizeWhitespace(pl.disclaimer))) {
+          const id = `${record.caseId}-revision-disclaimer`;
+          writer.write({ type: "text-start", id });
+          writer.write({ type: "text-delta", id, delta: `\n\n${pl.disclaimer}` });
+          writer.write({ type: "text-end", id });
+        }
       }
 
       const current = store.get(record.caseId);

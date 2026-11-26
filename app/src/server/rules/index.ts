@@ -411,7 +411,7 @@ export function checkLlmOutcome(
   facts: DateFacts,
   classifier: ClassifierResult | null,
   outcome: { decision: Decision; citedSections: string[] },
-  imageAnalysis?: Pick<ImageAnalysis, 'damage'> | null,
+  imageAnalysis?: Partial<Pick<ImageAnalysis, 'usable' | 'matchesCategory' | 'damage'>> | null,
   threshold = 0.8,
 ): { ok: true } | { ok: false; violations: string[] } {
   if (outcome.decision === 'escalated') return { ok: true };
@@ -430,6 +430,15 @@ export function checkLlmOutcome(
     if (input.channel === 'online' && facts.withdrawalOpen && outcome.decision === 'rejected' && !statutoryExclusion) {
       violations.push('online_withdrawal_cannot_be_rejected_without_statutory_exclusion');
     }
+  }
+  // PRD AC-20: an unusable photo or one of the wrong category cannot ground accepted/rejected on an open case.
+  const expired = input.caseType === 'complaint' ? facts.liabilityExpired : !facts.voluntaryOpen;
+  if (
+    !expired &&
+    outcome.decision !== 'needs_info' &&
+    (imageAnalysis?.usable === false || imageAnalysis?.matchesCategory === false)
+  ) {
+    violations.push('unusable_or_mismatched_image_requires_needs_info');
   }
   if (input.caseType === 'complaint') {
     let probableCause: string | undefined;

@@ -233,6 +233,8 @@ The *Cited* column lists the exact `citedSections` array elements. Each element 
   - online return with `withdrawalOpen` → not `rejected`, **unless** `citedSections` contains `§4 ust. 1`, `§4 ust. 2` or `§4 ust. 3` of the return policy (statutory exclusions such as the hygiene seal);
   - complaint whose `ImageAnalysis.damage.probableCause` (or, without analysis, Jev `damage_cause` with certainty ≥ threshold) is impact, liquid, heat or tampering → not `accepted`.
 
+  - **Image usability and category (amendment T21, PRD AC-20):** when `ImageAnalysis.usable === false` or `ImageAnalysis.matchesCategory === false` and the case is neither expired (complaint `liabilityExpired`, return `ageDays` > 30) nor `escalated`, the only allowed decision is `needs_info`; any other decision is the violation `unusable_or_mismatched_image_requires_needs_info`. `checkLlmOutcome` receives the full analysis.
+
   If the check fails, or the output misses headings or citations, the call is retried once with the violation listed. If it fails again, the case gets decision `escalated` with the fixed template `llm_inconsistent`, and the event is logged.
 - **Finalizer:** strips any disclaimer the model wrote itself and appends the canonical disclaimer.
 
@@ -253,6 +255,7 @@ The *Cited* column lists the exact `citedSections` array elements. Each element 
     1. Apply `corrections` to a copy of the input and recompute `facts`.
     2. Run `checkLlmOutcome` on the corrected input and facts with `newDecision`.
     3. Reject when the check fails, or when `newDecision` equals the current decision and there are no corrections. The tool returns `{applied: false, violation?}`, nothing changes, and `revision_rejected` is logged.
+    3a. *(amendment T21, grounded in policy §7)* Reject with violation `accepted_requires_corrections` when `newDecision` is `accepted` and `corrections` is absent or empty, and log `revision_rejected`. A revision to `accepted` needs a corrected purchase date or channel whose corrected facts pass `checkLlmOutcome`; without corrections the allowed targets are `escalated`, `rejected` and `needs_info` (still subject to `checkLlmOutcome`), because new circumstances that cannot be verified from the photo go to a specialist.
     4. Otherwise store the corrected input and facts, update `CaseRecord.currentDecision`, append a revision `{from, to, reason, corrections, at}`, log `decision_revised`, and return `{applied: true, previous}`.
   - **Asking for a human:** an explicit request for a human is a new fact. `revise_decision(escalated)` always passes the check (§3.6).
   - **Rules in the prompt:** call the tool only when the customer states a **new fact** that changes the outcome under the policy; never because the customer insists (AC-37).

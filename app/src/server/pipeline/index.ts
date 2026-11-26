@@ -108,6 +108,7 @@ export async function runCasePipeline(input: CaseInput, photo: Buffer, opts: Run
   let classifierModel: string | null = null;
   let visionModel: string | null = null;
   let decisionModel: string | null = null;
+  let llmInconsistent = false;
 
   const logBase = () => ({
     ts: now().toISOString(),
@@ -186,6 +187,7 @@ export async function runCasePipeline(input: CaseInput, photo: Buffer, opts: Run
         apiKey: env.OPENROUTER_API_KEY,
       });
       latencyMs.decision = elapsedSince(decisionStartedAt);
+      llmInconsistent = decisionResult.inconsistent;
       outcome = {
         ...decisionResult.outcome,
         messageMarkdown: finalizeFirstMessage(decisionResult.outcome.messageMarkdown),
@@ -232,6 +234,17 @@ export async function runCasePipeline(input: CaseInput, photo: Buffer, opts: Run
       },
     };
     await logDecision(logEntry);
+    if (llmInconsistent) {
+      // ADR-000 §5 allowlisted fields only; the case_decided entry above carries the same outcome.
+      await logDecision({
+        ...logBase(),
+        event: "llm_inconsistent",
+        path: outcome.path,
+        decision: outcome.decision,
+        citedSections: outcome.citedSections,
+        reasonCodes: outcome.reasonCodes,
+      });
+    }
     const caseSummary: CaseSummary = {
       caseType: input.caseType,
       category: input.category,

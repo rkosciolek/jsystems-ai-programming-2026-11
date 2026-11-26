@@ -6,6 +6,7 @@ import { pl } from "@/lib/i18n/pl";
 import { getEnv } from "@/server/env";
 import { runCasePipeline } from "@/server/pipeline";
 import type { CaseEvent } from "@/lib/domain";
+import { readBodyLimited } from "../_lib/read-limited-body";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,9 +59,16 @@ export async function POST(request: Request): Promise<Response> {
     return tooLarge();
   }
 
+  // Missing or chunked Content-Length: count the bytes while reading, never buffer more than the limit.
+  const bytes = await readBodyLimited(request.body, MAX_PHOTO_BYTES + MULTIPART_OVERHEAD_BYTES);
+  if (bytes === "too_large") return tooLarge();
+  if (bytes === null) return validationResponse(400, { photo: pl.errors.imageRequired });
+
   let form: FormData;
   try {
-    form = await request.formData();
+    form = await new Response(bytes as BodyInit, {
+      headers: { "content-type": request.headers.get("content-type") ?? "" },
+    }).formData();
   } catch {
     return validationResponse(400, { photo: pl.errors.imageRequired });
   }

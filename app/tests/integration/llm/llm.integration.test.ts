@@ -111,6 +111,16 @@ function mutateFirstReplay(replay: ReplayFetch, pathName: string, value: unknown
   );
 }
 
+// T21 fix 1: the schema sent upstream for decisions no longer carries the citedSections `pattern`
+// (range citations are normalised and validated server-side); everything else is the captured request.
+function withoutCitationPattern(body: Record<string, unknown>): Record<string, unknown> {
+  const clone = JSON.parse(JSON.stringify(body)) as {
+    response_format: { json_schema: { schema: { properties: { citedSections: { items: Record<string, unknown> } } } } };
+  };
+  delete clone.response_format.json_schema.schema.properties.citedSections.items.pattern;
+  return clone as unknown as Record<string, unknown>;
+}
+
 function messageText(message: unknown): string {
   if (typeof message === "string") return message;
   if (!Array.isArray(message)) return "";
@@ -206,7 +216,7 @@ describe("LLM layer with real OpenRouter provider and captured exchanges", () =>
     expect(result.outcome.path).toBe("llm");
     expect(result.inconsistent).toBe(false);
     expect(result.outcome.decision).toBe((await recordedJson<{ decision: string }>(recording)).decision);
-    expect(await requestBody(replay.requests[0]!)).toEqual(await recordedRequestBody(recording));
+    expect(await requestBody(replay.requests[0]!)).toEqual(withoutCitationPattern(await recordedRequestBody(recording)));
 
     const system = decisionRequestMessage(replay.requests[0]!, "system");
     const ownPolicy = type === "complaint" ? "complaint-policy.md" : "return-policy.md";
@@ -276,6 +286,55 @@ describe("LLM layer with real OpenRouter provider and captured exchanges", () =>
     });
     expect(result.outcome.messageMarkdown).toContain("## Wstępna ocena");
     expect(result.outcome.messageMarkdown).toContain("Nie udało się uzyskać spójnej oceny");
+  });
+
+  it("T21.1: accepts range and list citations written by the model instead of failing with invalid_output", async () => {
+    const recorded = await recordedJson<Record<string, unknown>>("llm-decision-return-phone-1");
+    const ranged = applyMutation(recorded, "citedSections", ["§2 ust. 1", "§3 ust. 1–2", "§1 ust. 2", "§6 ust. 2–3", "§2 ust. 6"]);
+    const replay = createReplayFetch(["llm-decision-return-phone-1"], {
+      mutations: [{ recordingName: "llm-decision-return-phone-1", path: "choices.0.message.content", value: JSON.stringify(ranged) }],
+    });
+    const { classifier, analysis, facts } = await prepareDecision(returning, "return");
+    const result = await decide(returning, facts, analysis, classifier, CASE_ID, AbortSignal.timeout(5_000), {
+      fetch: replay,
+      apiKey: "synthetic-test-key",
+    });
+
+    expect(replay.requests).toHaveLength(1);
+    expect(result.inconsistent).toBe(false);
+    expect(result.outcome.citedSections).toEqual([
+      "§2 ust. 1", "§3 ust. 1", "§3 ust. 2", "§1 ust. 2", "§6 ust. 2", "§6 ust. 3", "§2 ust. 6",
+    ]);
+  });
+
+  it("T21.1: an unparseable citation feeds the retry and then the llm_inconsistent path", async () => {
+    const recorded = await recordedJson<Record<string, unknown>>("llm-decision-return-phone-1");
+    const broken = applyMutation(recorded, "citedSections", ["§3 ust. abc"]);
+    const brokenContent = JSON.stringify(broken);
+    const retried = mutateFirstReplay(
+      createReplayFetch(["llm-decision-return-phone-1", "llm-decision-return-phone-1"]),
+      "choices.0.message.content",
+      brokenContent,
+    );
+    const { classifier, analysis, facts } = await prepareDecision(returning, "return");
+    const recovered = await decide(returning, facts, analysis, classifier, CASE_ID, AbortSignal.timeout(5_000), {
+      fetch: retried,
+      apiKey: "synthetic-test-key",
+    });
+
+    expect(retried.requests).toHaveLength(2);
+    expect(recovered.inconsistent).toBe(false);
+    expect(decisionRequestMessage(retried.requests[1]!, "user")).toContain("Nieprawidłowy format cytowania: §3 ust. abc.");
+
+    const always = createReplayFetch(["llm-decision-return-phone-1", "llm-decision-return-phone-1"], {
+      mutations: [{ recordingName: "llm-decision-return-phone-1", path: "choices.0.message.content", value: brokenContent }],
+    });
+    const failed = await decide(returning, facts, analysis, classifier, CASE_ID, AbortSignal.timeout(5_000), {
+      fetch: always,
+      apiKey: "synthetic-test-key",
+    });
+    expect(always.requests).toHaveLength(2);
+    expect(failed).toMatchObject({ inconsistent: true, outcome: { decision: "escalated", reasonCodes: ["llm_inconsistent"] } });
   });
 
   it.each([

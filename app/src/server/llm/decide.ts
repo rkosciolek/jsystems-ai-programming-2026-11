@@ -2,6 +2,7 @@ import 'server-only';
 
 import { generateText, Output, type LanguageModel } from 'ai';
 import type { CaseInput, DateFacts, DecisionOutcome, ImageAnalysis } from '@/lib/domain';
+import { z } from 'zod';
 import { CATEGORIES, DecisionOutcomeSchema } from '@/lib/domain';
 import { getEnv } from '@/server/env';
 import { getPolicy } from '@/server/policies';
@@ -12,6 +13,10 @@ import { finalizeFirstMessage as finalizeTemplate, renderFirstMessage, validateF
 import type { LlmCallDependencies } from './analyze-image';
 import { getOpenRouter } from './provider';
 import { toLlmError } from './errors';
+
+// The model may write ranges ("§3 ust. 1–2"). The schema sent upstream therefore accepts plain strings;
+// the output is normalised and validated against CITED_SECTION_REGEX by validateFirstMessage afterwards (violations feed the retry).
+const LlmDecisionOutputSchema = DecisionOutcomeSchema.extend({ citedSections: z.array(z.string()).min(1) });
 
 function formJson(input: CaseInput) {
   return {
@@ -91,7 +96,7 @@ async function generateDecision(
   try {
     const result = await generateText({
       model,
-      output: Output.object({ schema: DecisionOutcomeSchema }),
+      output: Output.object({ schema: LlmDecisionOutputSchema }),
       system,
       messages: [{ role: 'user', content: userPrompt }],
       providerOptions: { openrouter: { reasoning: { effort: env.LLM_REASONING_EFFORT } } },

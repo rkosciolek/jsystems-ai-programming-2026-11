@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { CaseUIMessage } from "@/lib/domain";
 import { getCaseStore } from "@/server/case-store";
 import { chatStream } from "@/server/llm/chat";
+import { readBodyLimited } from "../_lib/read-limited-body";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,10 +23,18 @@ const ChatRequestSchema = z.object({
   messages: z.array(ChatMessageSchema).min(1).max(60),
 });
 
+const MAX_BODY_BYTES = 512 * 1024;
+// Part types the server itself produces in assistant messages (text, revision tool call and result, badge data).
+const ASSISTANT_PART_TYPES = new Set(["text", "step-start", "tool-revise_decision", "data-decision"]);
+
 type ChatRequest = z.infer<typeof ChatRequestSchema>;
 
 function invalidRequest(): Response {
   return Response.json({ error: "invalid_request" }, { status: 400 });
+}
+
+function payloadTooLarge(): Response {
+  return Response.json({ error: "payload_too_large" }, { status: 413 });
 }
 
 function userMessageText(message: ChatRequest["messages"][number]): string | undefined {
@@ -41,19 +50,43 @@ function userMessageText(message: ChatRequest["messages"][number]): string | und
   return content;
 }
 
-function validateMessages(messages: ChatRequest["messages"]): boolean {
-  if (messages.at(-1)?.role !== "user") return false;
-  for (const message of messages) {
-    if (message.role === "user" && userMessageText(message) === undefined) return false;
-  }
-  const text = userMessageText(messages.at(-1)!);
+function validTrimmedLength(text: string | undefined): boolean {
   return text !== undefined && text.trim().length >= 1 && text.trim().length <= 2000;
 }
 
+function assistantPartsAllowed(message: ChatRequest["messages"][number]): boolean {
+  return message.parts.every((part) =>
+    !!part &&
+    typeof part === "object" &&
+    "type" in part &&
+    typeof part.type === "string" &&
+    ASSISTANT_PART_TYPES.has(part.type) &&
+    (part.type !== "text" || ("text" in part && typeof part.text === "string")),
+  );
+}
+
+function validateMessages(messages: ChatRequest["messages"]): boolean {
+  if (messages.at(-1)?.role !== "user") return false;
+  for (const [index, message] of messages.entries()) {
+    if (message.role === "user") {
+      if (!validTrimmedLength(userMessageText(message))) return false;
+    } else if (index > 0 && !assistantPartsAllowed(message)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export async function POST(request: Request): Promise<Response> {
+  const declaredLength = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) return payloadTooLarge();
+  const bytes = await readBodyLimited(request.body, MAX_BODY_BYTES);
+  if (bytes === "too_large") return payloadTooLarge();
+  if (bytes === null) return invalidRequest();
+
   let body: unknown;
   try {
-    body = await request.json();
+    body = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
   } catch {
     return invalidRequest();
   }

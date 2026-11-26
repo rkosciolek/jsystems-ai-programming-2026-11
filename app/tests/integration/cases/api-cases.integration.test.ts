@@ -160,6 +160,56 @@ describe("POST /api/cases replay integration", () => {
     expect(await response.json()).toEqual({ error: "validation", fields: { photo: "Plik przekracza limit 10 MB." } });
   });
 
+  it("T21.3: rejects an oversized chunked body (no Content-Length) with 413 without request.formData()", async () => {
+    const chunk = new Uint8Array(1024 * 1024);
+    let sent = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (sent >= 20) controller.close();
+        else { sent += 1; controller.enqueue(chunk); }
+      },
+    });
+    const incoming = new Request("http://localhost/api/cases", {
+      method: "POST",
+      headers: { "content-type": "multipart/form-data; boundary=x" },
+      body,
+      duplex: "half",
+    } as RequestInit);
+    expect(incoming.headers.get("content-length")).toBeNull();
+    const formData = vi.spyOn(incoming, "formData");
+    const pipeline = await import("@/server/pipeline");
+    pipeline.setPipelineDeps({ fetch: createReplayFetch([]), now: () => new Date(TODAY) });
+    const route = await import("@/app/api/cases/route");
+    const response = await route.POST(incoming);
+
+    expect(response.status).toBe(413);
+    expect(formData).not.toHaveBeenCalled();
+    expect(sent).toBeLessThan(20);
+    expect(await response.json()).toEqual({ error: "validation", fields: { photo: "Plik przekracza limit 10 MB." } });
+  });
+
+  it("T21.3: still accepts a valid multipart body delivered as a chunked stream", async () => {
+    const replay = createReplayFetch(["jev-complaint-laptop-1"], {
+      mutations: [{ recordingName: "jev-complaint-laptop-1", path: "answers.description_matches_photo.noul", value: 0.9 }],
+    });
+    const source = new Response(makeForm({}, await photo()));
+    const contentType = source.headers.get("content-type")!;
+    const incoming = new Request("http://localhost/api/cases", {
+      method: "POST",
+      headers: { "content-type": contentType },
+      body: source.body,
+      duplex: "half",
+    } as RequestInit);
+    expect(incoming.headers.get("content-length")).toBeNull();
+    const pipeline = await import("@/server/pipeline");
+    pipeline.setPipelineDeps({ fetch: replay, now: () => new Date(TODAY) });
+    const route = await import("@/app/api/cases/route");
+    const response = await route.POST(incoming);
+
+    expect(response.status).toBe(200);
+    expect((await events(response)).at(-1)?.type).toBe("result");
+  });
+
   it("rejects text content named fake.png with 415", async () => {
     const fake = new File(["not an image"], "fake.png", { type: "image/png" });
     const response = await postCase(makeForm({}, fake));
@@ -331,6 +381,38 @@ describe("POST /api/cases replay integration", () => {
     expect((await events(response)).at(-1)?.type).toBe("result");
     expect(replay.requests).toHaveLength(3);
     expect(await readLog()).toContain('"shadowFastPathDecision":"rejected"');
+  });
+
+  it("T21.2: logs an llm_inconsistent event next to case_decided when both decision attempts violate a hard rule", async () => {
+    vi.stubEnv("DECISION_MODE", "llm-only");
+    const recorded = await loadRecording("llm-decision-complaint-laptop-1");
+    const completion = JSON.parse(recorded.body.toString("utf8")) as { choices: { message: { content: string } }[] };
+    const content = JSON.parse(completion.choices[0]!.message.content) as Record<string, unknown>;
+    // Declared mutation (MUTATIONS.md): decision `rejected` -> `accepted` on both attempts for an expired complaint.
+    const replay = createReplayFetch([
+      "jev-complaint-laptop-1",
+      "llm-vision-complaint-laptop-1",
+      "llm-decision-complaint-laptop-1",
+      "llm-decision-complaint-laptop-1",
+    ], {
+      mutations: [
+        { recordingName: "llm-decision-complaint-laptop-1", path: "choices.0.message.content", value: JSON.stringify({ ...content, decision: "accepted" }) },
+      ],
+    });
+    const response = await postCase(makeForm({ purchaseDate: "2023-09-01", description: "ZZ-SENTINEL-ZZ Ekran laptopa pękł i pojawiły się pionowe pasy." }, await photo()), replay);
+
+    expect((await events(response)).at(-1)).toMatchObject({ type: "result", decision: "escalated" });
+    const lines = (await readLog()).trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+    expect(lines.map((line) => line.event)).toEqual(expect.arrayContaining(["llm_inconsistent", "case_decided"]));
+    const inconsistent = lines.find((line) => line.event === "llm_inconsistent");
+    expect(inconsistent).toMatchObject({
+      caseType: "complaint",
+      path: "llm",
+      decision: "escalated",
+      reasonCodes: ["llm_inconsistent"],
+      citedSections: ["§7"],
+    });
+    expect(JSON.stringify(inconsistent)).not.toContain("ZZ-SENTINEL-ZZ");
   });
 
   it("returns 405 for non-POST requests", async () => {

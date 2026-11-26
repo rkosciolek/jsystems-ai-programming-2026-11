@@ -523,6 +523,48 @@ describe("checkLlmOutcome — hard constraints", () => {
   });
 });
 
+describe("checkLlmOutcome — image usability and category match (T21.8, PRD AC-20)", () => {
+  const outcome = (decision: Decision) => ({ decision, citedSections: ["§7"] });
+  const analysis = (overrides: { usable?: boolean; matchesCategory?: boolean }) => ({
+    usable: true,
+    matchesCategory: true,
+    damage: { visible: true, type: "crack", location: "screen", extent: "major" as const, probableCause: "manufacturing_defect" as const },
+    ...overrides,
+  });
+
+  it.each([
+    ["an unusable photo", { usable: false }],
+    ["a photo that does not match the category", { matchesCategory: false }],
+  ])("allows only needs_info or escalated for %s on an open case", (_name, overrides) => {
+    const input = caseInput();
+    const facts = computeFacts(input, TODAY);
+    for (const decision of ["accepted", "rejected"] as const) {
+      expect(checkLlmOutcome(input, facts, classifier(), outcome(decision), analysis(overrides))).toMatchObject({
+        ok: false,
+        violations: [expect.stringContaining("needs_info")],
+      });
+    }
+    expect(checkLlmOutcome(input, facts, classifier(), outcome("needs_info"), analysis(overrides))).toEqual({ ok: true });
+    expect(checkLlmOutcome(input, facts, classifier(), outcome("escalated"), analysis(overrides))).toEqual({ ok: true });
+  });
+
+  it("applies the same rule to an open return", () => {
+    const input = caseInput({ caseType: "return", channel: "store", purchaseDate: purchaseDateAtAge(5) });
+    const facts = computeFacts(input, TODAY);
+    expect(checkLlmOutcome(input, facts, classifier(), outcome("accepted"), analysis({ usable: false }))).toMatchObject({ ok: false });
+    expect(checkLlmOutcome(input, facts, classifier(), outcome("needs_info"), analysis({ usable: false }))).toEqual({ ok: true });
+  });
+
+  it("does not require needs_info when the case is expired (rejected stays valid) or the photo is fine", () => {
+    const expired = caseInput({ purchaseDate: "2023-01-01" });
+    expect(checkLlmOutcome(expired, computeFacts(expired, TODAY), classifier(), outcome("rejected"), analysis({ usable: false }))).toEqual({ ok: true });
+    const lateReturn = caseInput({ caseType: "return", channel: "store", purchaseDate: purchaseDateAtAge(31) });
+    expect(checkLlmOutcome(lateReturn, computeFacts(lateReturn, TODAY), classifier(), outcome("rejected"), analysis({ matchesCategory: false }))).toEqual({ ok: true });
+    const open = caseInput();
+    expect(checkLlmOutcome(open, computeFacts(open, TODAY), classifier(), outcome("rejected"), analysis({}))).toEqual({ ok: true });
+  });
+});
+
 describe("policy deadlines (TAC-001-05)", () => {
   it("keeps the deadline constants aligned with the policy documents", () => {
     const complaintPolicy = readFileSync(resolve(process.cwd(), "../docs/policies/complaint-policy.md"), "utf8");

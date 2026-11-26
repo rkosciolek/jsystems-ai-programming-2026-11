@@ -37,3 +37,8 @@ Streamed bodies: `response.body` is the byte-exact SSE stream. `response.meta.js
 `capture.json` of LLM recordings additionally holds `today` (the date used to compute DateFacts), `promptHashes` (sha256 of every prompt file used) and `policyHash` (sha256 of the policy file). Inputs derived from earlier recordings: the Jev answers come from `jev-*` recordings, the ImageAnalysis and first assistant message from the `llm-vision-*`/`llm-decision-*` recordings. Re-capture in order: `jev-*`, vision, decision, chat. `CAPTURE_ONLY=all` also re-records the Jev and error recordings (and loses the manual `user_id` redaction of `llm-error-unknown-model`): capture the LLM recordings one by one (`CAPTURE_ONLY=llm-vision-complaint-laptop-1`, ...) instead.
 
 `llm-chat-tool` case context is hand-built input (not a response): a return from the `phone-1` form with channel `store`, purchase date 10 days before capture, current decision `rejected` citing `§3 ust. 1` and `§3 ust. 2`, and a hand-written first assistant message. The model responses are real.
+
+
+## T21 amendment: decision request schema
+
+The decision call (`llm-decision-*`) now sends `Output.object` of the decision schema with plain-string `citedSections` items (T21.1): the `pattern` constraint on `citedSections.items` was removed from the JSON schema sent upstream, because the model may write ranges (`§3 ust. 1–2`) that are normalised server-side and validated against the citation regex afterwards. The recordings were **not** re-captured (no real calls); `llm.integration.test.ts` compares the replayed request body with the recorded `request.json` after deleting that one `pattern` key. Re-capture the decision recordings at the next scheduled capture run.

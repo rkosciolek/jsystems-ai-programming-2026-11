@@ -184,6 +184,10 @@ describe("POST /api/chat", () => {
     ["a file part", (record: CaseRecord) => [assistantMessage(record), { id: "user-1", role: "user", parts: [{ type: "file", mediaType: "image/jpeg", url: "data:image/jpeg;base64,AA==" }] }]],
     ["more than 60 messages", (record: CaseRecord) => [assistantMessage(record), ...Array.from({ length: 60 }, (_, index) => userMessage("wiadomość", `user-${index}`))]],
     ["whitespace-only text", (record: CaseRecord) => [assistantMessage(record), userMessage(" \n ")]],
+    ["an earlier user message over 2000 characters", (record: CaseRecord) => [assistantMessage(record), userMessage("x".repeat(2001), "user-0"), assistantMessage(record, "Odpowiedź"), userMessage("Dalsze pytanie")]],
+    ["an earlier whitespace-only user message", (record: CaseRecord) => [assistantMessage(record), userMessage("  ", "user-0"), { id: "assistant-2", role: "assistant", parts: [{ type: "text", text: "Odpowiedź" }] }, userMessage("Dalsze pytanie")]],
+    ["a file part in a later assistant message", (record: CaseRecord) => [assistantMessage(record), userMessage("Pytanie", "user-0"), { id: "assistant-2", role: "assistant", parts: [{ type: "file", mediaType: "image/jpeg", url: "data:image/jpeg;base64,AA==" }] }, userMessage("Dalsze pytanie")]],
+    ["a reasoning part in a later assistant message", (record: CaseRecord) => [assistantMessage(record), userMessage("Pytanie", "user-0"), { id: "assistant-2", role: "assistant", parts: [{ type: "reasoning", text: "ukryte" }] }, userMessage("Dalsze pytanie")]],
     ["a last message that is not from the user", (record: CaseRecord) => [assistantMessage(record), assistantMessage(record, "Odpowiedź asystenta")]],
   ])("returns 400 for %s", async (_name, makeMessages) => {
     const record = makeRecord(complaint);
@@ -193,6 +197,87 @@ describe("POST /api/chat", () => {
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({ error: "invalid_request" });
+  });
+});
+
+describe("POST /api/chat T21 request limits", () => {
+  beforeEach(async () => {
+    vi.stubEnv("OPENROUTER_API_KEY", "synthetic-test-key");
+    vi.stubEnv("LLM_MODEL", "openai/gpt-6-luna");
+    vi.stubEnv("LLM_REASONING_EFFORT", "medium");
+    vi.stubEnv("POLICIES_DIR", "../docs/policies");
+    vi.stubEnv("DECISION_MODE", "auto");
+    vi.stubEnv("DECISION_LOG_PATH", "./var/chat-api-test-decisions.jsonl");
+    await rm(LOG_PATH, { force: true });
+    getCaseStore().clear();
+  });
+
+  afterEach(async () => {
+    setChatStreamDeps({});
+    getCaseStore().clear();
+    vi.unstubAllEnvs();
+    await rm(LOG_PATH, { force: true });
+  });
+
+  it("T21.4: accepts a later turn whose history holds server-produced assistant parts (text, step-start, tool, data-decision)", async () => {
+    const record = makeRecord(complaint);
+    getCaseStore().create(record);
+    const replay = createReplayFetch(["llm-chat-reply"]);
+    setChatStreamDeps({ fetch: replay });
+    const revised = {
+      id: "assistant-2",
+      role: "assistant",
+      parts: [
+        { type: "step-start" },
+        { type: "tool-revise_decision", toolCallId: "call-1", state: "output-available", input: { newDecision: "accepted", reason: "Nowy fakt." }, output: { applied: true, previous: "rejected" } },
+        { type: "data-decision", data: { decision: "accepted", previous: "rejected", reason: "Nowy fakt." } },
+        { type: "step-start" },
+        { type: "text", text: "**Zmieniona ocena**" },
+      ],
+    } as unknown as CaseUIMessage;
+    const response = await POST(requestBody([
+      assistantMessage(record),
+      userMessage("Pomyliłem się co do kanału.", "user-0"),
+      revised,
+      userMessage("Jaką datę zakupu podałem?", "user-1"),
+    ]));
+
+    expect(response.status).toBe(200);
+    await response.text();
+    expect(replay.requests).toHaveLength(1);
+  });
+
+  it("T21.4: returns 413 for a body over 512 KB before JSON parsing", async () => {
+    const record = makeRecord(complaint);
+    getCaseStore().create(record);
+    const huge = assistantMessage(record, "a".repeat(600 * 1024));
+    const response = await POST(requestBody([assistantMessage(record), huge, userMessage("Pytanie")]));
+
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({ error: "payload_too_large" });
+  });
+
+  it("T21.4: returns 413 for a chunked body without Content-Length that exceeds 512 KB", async () => {
+    const record = makeRecord(complaint);
+    getCaseStore().create(record);
+    const chunk = new TextEncoder().encode("x".repeat(64 * 1024));
+    let sent = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (sent >= 12) controller.close();
+        else { sent += 1; controller.enqueue(chunk); }
+      },
+    });
+    const incoming = new Request("http://localhost/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body,
+      duplex: "half",
+    } as RequestInit);
+    const response = await POST(incoming);
+
+    expect(response.status).toBe(413);
+    expect(sent).toBeLessThan(12);
   });
 });
 

@@ -155,6 +155,31 @@ function textBeforeToolVariant(replay: ReplayFetch): ReplayFetch {
   });
 }
 
+// Declared mutation (MUTATIONS.md): the second exchange (step 2) keeps its captured SSE frames but its
+// text content is replaced by `text` (first content frame carries it, later content frames are dropped).
+function stepTwoTextVariant(replay: ReplayFetch, text: string): ReplayFetch {
+  let call = 0;
+  return Object.assign(
+    (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const response = await replay(input, init);
+      if (call++ !== 1) return response;
+      let replaced = false;
+      const frames = (await response.text()).split(/(?<=\n\n)/).flatMap((frame) => {
+        if (!frame.startsWith("data: {")) return [frame];
+        const chunk = JSON.parse(frame.slice(6, -2)) as CompletionChunk;
+        const delta = chunk.choices[0]?.delta;
+        if (!delta || typeof delta.content !== "string" || delta.content.length === 0) return [frame];
+        if (replaced) return [];
+        replaced = true;
+        delta.content = text;
+        return [`data: ${JSON.stringify(chunk)}\n\n`];
+      });
+      return new Response(frames.join(""), { status: response.status, statusText: response.statusText, headers: response.headers });
+    }) as ReplayFetch,
+    { requests: replay.requests },
+  );
+}
+
 async function readChunks(stream: ReadableStream<unknown>): Promise<Record<string, unknown>[]> {
   const chunks: Record<string, unknown>[] = [];
   const reader = stream.getReader();
@@ -310,5 +335,91 @@ describe("chatStream revision tool with captured provider exchanges", () => {
 
     expect(text).not.toContain("Poprzednia ocena:");
     expect(text.split(pl.disclaimer)).toHaveLength(2);
+  });
+  it("T21.5: writes the server-built revision header before model text that lacks the label and the decisions", async () => {
+    const record = makeRecord(returning);
+    getCaseStore().create(record);
+    const own = "Zmieniłem ocenę po Twojej korekcie kanału zakupu.";
+    const replay = stepTwoTextVariant(createReplayFetch(["llm-chat-tool-step1", "llm-chat-tool-step2"]), own);
+    const chunks = await readChunks(await chatStream(record, messages(record), AbortSignal.timeout(10_000), { fetch: replay }));
+    const text = chunks.filter((chunk) => chunk.type === "text-delta").map((chunk) => String(chunk.delta)).join("");
+
+    expect(text.startsWith("**Zmieniona ocena**")).toBe(true);
+    expect(text).toContain("Poprzednia ocena: Wstępnie odrzucono. Nowa ocena: Wstępnie zaakceptowano.");
+    expect(text.indexOf(own)).toBeGreaterThan(text.indexOf("Nowa ocena:"));
+    expect(text).not.toContain("Powód: ");
+    expect(text.split(pl.disclaimer)).toHaveLength(2);
+    const types = chunks.map((chunk) => chunk.type);
+    expect(types.lastIndexOf("text-end")).toBeLessThan(types.indexOf("finish"));
+    expect(types.indexOf("finish-step")).toBeGreaterThan(-1);
+    expect(chunks.some((chunk) => chunk.type === "error")).toBe(false);
+  });
+
+  it("T21.5: does not duplicate the header when the model text already starts with it and names both decisions", async () => {
+    const record = makeRecord(returning);
+    getCaseStore().create(record);
+    const replay = createReplayFetch(["llm-chat-tool-step1", "llm-chat-tool-step2"]);
+    const chunks = await readChunks(await chatStream(record, messages(record), AbortSignal.timeout(10_000), { fetch: replay }));
+    const text = chunks.filter((chunk) => chunk.type === "text-delta").map((chunk) => String(chunk.delta)).join("");
+
+    expect(text.split("**Zmieniona ocena**")).toHaveLength(2);
+    expect(text.startsWith("**Zmieniona ocena**")).toBe(true);
+  });
+
+  it("T21.6: does not append the disclaimer when the model text of this turn already contains it", async () => {
+    const record = makeRecord(returning);
+    getCaseStore().create(record);
+    const own = `**Zmieniona ocena**\n\nPoprzednia ocena: Wstępnie odrzucono. Nowa ocena: Wstępnie zaakceptowano.\n\n${pl.disclaimer}`;
+    const replay = stepTwoTextVariant(createReplayFetch(["llm-chat-tool-step1", "llm-chat-tool-step2"]), own);
+    const chunks = await readChunks(await chatStream(record, messages(record), AbortSignal.timeout(10_000), { fetch: replay }));
+    const text = chunks.filter((chunk) => chunk.type === "text-delta").map((chunk) => String(chunk.delta)).join("");
+
+    expect(text.split(pl.disclaimer)).toHaveLength(2);
+    expect(text.split("**Zmieniona ocena**")).toHaveLength(2);
+  });
+
+  it("T21.7: decision_revised logs reasonCodes chat_revision and no stale citedSections", async () => {
+    const record = makeRecord(returning);
+    getCaseStore().create(record);
+    const replay = createReplayFetch(["llm-chat-tool-step1", "llm-chat-tool-step2"]);
+    await readChunks(await chatStream(record, messages(record), AbortSignal.timeout(10_000), { fetch: replay }));
+    const lines = (await readFile(LOG_PATH, "utf8")).trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+    const revised = lines.find((line) => line.event === "decision_revised");
+
+    expect(revised).toBeDefined();
+    expect(revised?.reasonCodes).toEqual(["chat_revision"]);
+    expect(revised).not.toHaveProperty("citedSections");
+    expect(JSON.stringify(revised)).not.toContain("used_item_voluntary");
+  });
+  it("T21.9: rejects a revision to accepted without corrections (accepted_requires_corrections) and logs revision_rejected", async () => {
+    const record = makeRecord(returning);
+    getCaseStore().create(record);
+    // Declared mutation (MUTATIONS.md): captured `accepted` + channel correction -> `accepted` without corrections.
+    const replay = toolArgumentVariant(
+      createReplayFetch(["llm-chat-tool-step1", "llm-chat-tool-step2"]),
+      { newDecision: "accepted", reason: "Klient nalega na akceptacji." },
+    );
+    const chunks = await readChunks(await chatStream(record, messages(record), AbortSignal.timeout(10_000), { fetch: replay }));
+
+    expect(getCaseStore().get(CASE_ID)?.currentDecision).toBe("rejected");
+    expect(getCaseStore().get(CASE_ID)?.revisions).toHaveLength(0);
+    expect(chunks.some((chunk) => chunk.type === "data-decision")).toBe(false);
+    const output = chunks.find((chunk) => chunk.type === "tool-output-available") as { output?: unknown } | undefined;
+    expect(output?.output).toEqual({ applied: false, violation: "accepted_requires_corrections" });
+    expect(await readFile(LOG_PATH, "utf8")).toContain('"event":"revision_rejected"');
+  });
+
+  it("T21.9: still allows escalated, rejected and needs_info without corrections", async () => {
+    for (const decision of ["escalated", "needs_info"] as const) {
+      getCaseStore().clear();
+      const record = makeRecord(returning);
+      getCaseStore().create(record);
+      const replay = toolArgumentVariant(
+        createReplayFetch(["llm-chat-tool-step1", "llm-chat-tool-step2"]),
+        { newDecision: decision, reason: "Nowa okoliczność wymaga weryfikacji." },
+      );
+      await readChunks(await chatStream(record, messages(record), AbortSignal.timeout(10_000), { fetch: replay }));
+      expect(getCaseStore().get(CASE_ID)?.currentDecision).toBe(decision);
+    }
   });
 });
