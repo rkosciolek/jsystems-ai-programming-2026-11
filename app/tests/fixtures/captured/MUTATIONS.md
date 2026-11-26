@@ -4,3 +4,5 @@
 | jev-complaint-laptop-1 | response.body `answers.image_usable.noul` | `0.84` -> `0.5` | Exercise the ADR-001 §3.2 inclusive noul threshold edge (`p >= 0.5`) |
 | jev-complaint-laptop-1 | response.body `answers` | object -> field removed | Exercise invalid-response handling when required answer data is missing |
 | jev-complaint-laptop-1 | response.body `answers.device_category.confidence` | `1` -> `0.02` | Confirm TD-101 certainty uses `probabilities[choice]`, while preserving `confidence` in `raw` |
+| llm-decision-complaint-laptop-1 | response.body `choices[0].message.content.decision` | `rejected` -> `accepted` | Exercise the hard rule that an expired complaint cannot be accepted; retry with the unmodified recording and verify `llm_inconsistent` after two mutated responses |
+| llm-error-unknown-model | response.meta.json `status` | `400` -> `200` (response body unchanged) | Exercise OpenRouter's HTTP-200 error-body handling using a captured real error object |
