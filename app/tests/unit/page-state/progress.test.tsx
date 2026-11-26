@@ -99,3 +99,13 @@ describe("AnalysisProgress", () => {
     expect(screen.getByTestId("progress-summary").querySelector("img")).toBeNull();
   });
 });
+
+describe("AnalysisProgress thumbnail alignment (Q2.3)", () => {
+  it("left-aligns the photo inside its box so it lines up with the summary", () => {
+    URL.createObjectURL = vi.fn(() => THUMB);
+    render(<AnalysisProgress draft={draft} completedSteps={[]} thumbnailUrl={THUMB} />);
+    const img = within(screen.getByTestId("progress-summary")).getByRole("img");
+    expect(img).toHaveClass("object-left");
+    cleanup();
+  });
+});

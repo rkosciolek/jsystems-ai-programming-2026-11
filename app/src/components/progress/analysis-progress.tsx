@@ -65,7 +65,7 @@ export function AnalysisProgress({ draft, completedSteps, thumbnailUrl }: Analys
               width={320}
               height={180}
               unoptimized
-              className="max-h-36 max-w-full rounded-md object-contain"
+              className="max-h-36 max-w-full rounded-md object-contain object-left"
             />
           </dd>
         )}

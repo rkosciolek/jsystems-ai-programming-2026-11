@@ -93,34 +93,60 @@ function focusField(field: keyof Draft): void {
 }
 
 function FieldError({ id, message }: { id: string; message?: string }) {
-  if (!message) return null;
-  return <p id={id} className="mt-1 text-sm text-destructive">{message}</p>;
+  // The slot is always rendered (min-h-5) so a blur-triggered message never moves the
+  // controls below it, which used to swallow the first click on the submit button.
+  return (
+    <p
+      id={message ? id : undefined}
+      data-slot="field-message"
+      className="mt-1 min-h-5 text-sm text-destructive"
+    >
+      {message}
+    </p>
+  );
 }
 
-const clientSchema = makeCaseInputSchema(todayInWarsaw())
-  .and(z.object({
-    caseType: z.string().optional(),
-    description: z.string(),
-    photo: z.custom<File>().optional(),
-  }).superRefine(({ caseType, description, photo }, ctx) => {
-    const descriptionLength = description.trim().length;
-    if (descriptionLength > 2000) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["description"],
-        message: caseType === "complaint" ? pl.errors.description : pl.errors.descriptionTooLong,
-      });
-    } else if (caseType === "complaint" && descriptionLength < 20) {
-      ctx.addIssue({ code: "custom", path: ["description"], message: pl.errors.description });
+const baseSchema = makeCaseInputSchema(todayInWarsaw());
+
+// One object schema, not `.and()`: Zod cannot merge an intersection whose sides both
+// report issues on the same path ("Unmergable intersection"), so the domain schema is
+// run inside a single transform and its issues are re-reported on their own paths.
+export const clientSchema = z
+  .object({ photo: z.custom<File>().optional() })
+  .loose()
+  .transform((value, ctx) => {
+    const { photo } = value;
+    const caseType = (value as { caseType?: unknown }).caseType;
+    const description = String((value as { description?: unknown }).description ?? "").trim();
+    let failed = false;
+    const report = (path: PropertyKey[], message: string) => {
+      failed = true;
+      ctx.addIssue({ code: "custom", path, message });
+    };
+    const parsed = baseSchema.safeParse(value);
+    if (!parsed.success) {
+      parsed.error.issues.forEach((issue) => report(issue.path, issue.message));
+    }
+    // Zod skips the domain schema's description refinement while another field is invalid,
+    // but the user must see the description error at once, so it is checked here as well.
+    const alreadyReported = !parsed.success && parsed.error.issues.some((issue) => issue.path[0] === "description");
+    if (!alreadyReported) {
+      if (description.length > 2000) {
+        report(["description"], caseType === "complaint" ? pl.errors.description : pl.errors.descriptionTooLong);
+      } else if (caseType === "complaint" && description.length < 20) {
+        report(["description"], pl.errors.description);
+      }
     }
     if (!photo) {
-      ctx.addIssue({ code: "custom", path: ["photo"], message: pl.errors.imageRequired });
+      report(["photo"], pl.errors.imageRequired);
     } else if (photo.size > MAX_PHOTO_BYTES) {
-      ctx.addIssue({ code: "custom", path: ["photo"], message: pl.errors.imageSize });
+      report(["photo"], pl.errors.imageSize);
     } else if (!isAcceptedPhoto(photo)) {
-      ctx.addIssue({ code: "custom", path: ["photo"], message: pl.errors.imageFormat });
+      report(["photo"], pl.errors.imageFormat);
     }
-  }));
+    if (failed || !parsed.success) return z.NEVER;
+    return { ...value, ...parsed.data };
+  });
 
 export function CaseForm({
   initialDraft,
@@ -143,7 +169,7 @@ export function CaseForm({
     defaultValues: initialDraft,
     mode: "onTouched",
     shouldFocusError: false,
-    resolver: zodResolver(clientSchema) as Resolver<Draft>,
+    resolver: zodResolver(clientSchema) as unknown as Resolver<Draft>,
   });
   const caseType = useWatch({ control, name: "caseType" });
   const photo = useWatch({ control, name: "photo" });
@@ -220,7 +246,6 @@ export function CaseForm({
             <span>{pl.errors.analysisBanner}</span>
             <Button
               type="button"
-              variant="outline"
               size="sm"
               disabled={disabled}
               onClick={() => {
@@ -452,7 +477,7 @@ export function CaseForm({
                 aria-required={true}
                 aria-invalid={Boolean(errors.photo)}
                 aria-describedby={errors.photo ? idForError("photo") : undefined}
-                className="sr-only"
+                className="sr-only w-px! h-px!"
                 tabIndex={-1}
                 disabled={formDisabled}
                 onChange={(event) => {
@@ -463,7 +488,6 @@ export function CaseForm({
               {photo && (
                 <Button
                   type="button"
-                  variant="outline"
                   size="sm"
                   disabled={formDisabled}
                   onClick={() => {
