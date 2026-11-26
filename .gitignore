@@ -11,7 +11,10 @@ secrets
 .DS_Store
 # Project skills in .agents/skills/ and skills-lock.json are committed: skills built
 # in class must reach the repository. .claude/skills/ holds the CLI's links to them.
-.claude/skills/
+# Links to skills that live in this repository are committed, so Claude Code finds
+# them after a fresh clone; links to externally installed skills stay local.
+.claude/skills/*
+!.claude/skills/implementation-plan
 __pycache__/
 *.pyc
 .playwright-cli
