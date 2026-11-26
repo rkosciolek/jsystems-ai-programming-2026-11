@@ -69,6 +69,15 @@ export const pl = {
   },
   common: { cancel: "Anuluj" },
   chat: {
+    ui: {
+      caseDetails: "Szczegóły sprawy",
+      conversation: "Rozmowa o zgłoszeniu",
+      typingLabel: "Asystent przygotowuje odpowiedź",
+      typing: "Asystent pisze…",
+      messageLabel: "Wiadomość",
+      messagePlaceholder: "Napisz wiadomość dotyczącą zgłoszenia",
+      scrollToLatest: "Przewiń do najnowszej wiadomości",
+    },
     send: "Wyślij",
     retry: "Ponów",
     newCase: "Nowa sprawa",

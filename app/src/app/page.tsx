@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { initialPageState, pageReducer, type FieldErrors } from "@/app/page-state";
 import { CaseForm, type Draft } from "@/components/case-form";
-import { FirstMessageView } from "@/components/first-message-view";
+import { ChatView } from "@/components/chat";
 import { AnalysisProgress } from "@/components/progress";
 import { ValidationError, submitCase } from "@/lib/client/submit-case";
 import { pl } from "@/lib/i18n/pl";
@@ -81,9 +81,10 @@ export default function Home() {
 
   if (state.kind === "chat") {
     return (
-      <FirstMessageView
+      <ChatView
         caseId={state.caseId}
-        decision={state.decision}
+        caseSummary={state.caseSummary}
+        thumbnailUrl={state.thumbnailUrl}
         firstMessage={state.firstMessage}
         onNewCase={handleNewCase}
       />
