@@ -391,7 +391,7 @@ describe("ChatView", () => {
     expect(screen.queryByText(pl.form.channel.online)).not.toBeInTheDocument();
   });
 
-  it("resets an expired case with Nowa sprawa without a confirmation dialog", async () => {
+  it("asks for confirmation before resetting an expired case", async () => {
     const onNewCase = vi.fn();
     renderChat({ onNewCase });
     const transport = chatMocks.useChat.mock.calls[0]?.[0].transport;
@@ -404,9 +404,16 @@ describe("ChatView", () => {
     });
     await screen.findByText(pl.errors.caseExpired);
 
-    await userEvent.setup().click(screen.getByRole("button", { name: pl.chat.newCase }));
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: pl.chat.newCase }));
 
-    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    const dialog = await screen.findByRole("alertdialog");
+    expect(within(dialog).getByText(pl.chat.newCaseConfirm)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: pl.common.cancel }));
+    expect(onNewCase).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: pl.chat.newCase }));
+    await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: pl.chat.newCase }));
     expect(onNewCase).toHaveBeenCalledTimes(1);
   });
 

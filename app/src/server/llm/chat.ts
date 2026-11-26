@@ -323,7 +323,7 @@ export async function chatStream(
           let headerResolved = false;
           const flushHeld = (withHeader: boolean) => {
             headerResolved = true;
-            if (withHeader && appliedRevision) {
+            if (withHeader && appliedRevision && appliedRevision.decision !== appliedRevision.previous) {
               const id = `${record.caseId}-revision-header`;
               controller.enqueue({ type: "text-start", id });
               controller.enqueue({ type: "text-delta", id, delta: revisionHeaderText(appliedRevision) });
@@ -345,7 +345,7 @@ export async function chatStream(
               // Q4.2: drop a repeated revise_decision call from later steps; the tool already ran once.
               if (finishedSteps > 0 && revisionToolInvoked && value.type.startsWith("tool-input")) continue;
               const isText = value.type === "text-start" || value.type === "text-delta" || value.type === "text-end";
-              if (appliedRevision && !headerResolved && isText) {
+              if (appliedRevision && appliedRevision.decision !== appliedRevision.previous && !headerResolved && isText) {
                 held.push(value);
                 if (value.type === "text-delta") {
                   heldText += value.delta;
@@ -370,7 +370,7 @@ export async function chatStream(
       writer.merge(withoutRepeatedToolCalls);
       await merged;
 
-      if (appliedRevision) {
+      if (appliedRevision && appliedRevision.decision !== appliedRevision.previous) {
         if (!textAfterRevision) {
           const fallbackId = `${record.caseId}-revision-fallback`;
           writer.write({ type: "text-start", id: fallbackId });

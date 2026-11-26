@@ -261,6 +261,31 @@ describe("chatStream revision tool with captured provider exchanges", () => {
     });
   });
 
+  it.each([
+    ["model response", "Ta sama decyzja po korekcie kanału."],
+    ["empty model response", ""],
+  ])("does not write the server revision header for an applied same-decision correction (%s)", async (_responseType, modelText) => {
+    const record = makeRecord(returning);
+    record.outcome.citedSections = ["§4 ust. 1"];
+    getCaseStore().create(record);
+    const replay = stepTwoTextVariant(
+      toolArgumentVariant(
+        createReplayFetch(["llm-chat-tool-step1", "llm-chat-tool-step2"]),
+        { newDecision: "rejected", reason: "Korekta kanału nie zmienia oceny.", corrections: { channel: "online" } },
+      ),
+      modelText,
+    );
+    const chunks = await readChunks(await chatStream(record, messages(record), AbortSignal.timeout(10_000), { fetch: replay }));
+    const toolOutput = chunks.find((chunk) => chunk.type === "tool-output-available") as { output?: unknown } | undefined;
+    const text = chunks.filter((chunk) => chunk.type === "text-delta").map((chunk) => String(chunk.delta)).join("");
+
+    expect(toolOutput?.output).toEqual({ applied: true, previous: "rejected" });
+    expect(getCaseStore().get(CASE_ID)?.currentDecision).toBe("rejected");
+    expect(chunks.find((chunk) => chunk.type === "data-decision")).toMatchObject({ data: { decision: "rejected", previous: "rejected" } });
+    expect(text).not.toContain("**Zmieniona ocena**");
+    if (modelText) expect(text).toContain(modelText);
+  });
+
   it("allows escalation even when the corrected return is outside every return window", async () => {
     const expired: CaseInput = { ...returning, purchaseDate: "2026-09-01" };
     const record = makeRecord(expired);

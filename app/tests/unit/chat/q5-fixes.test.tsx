@@ -5,8 +5,19 @@ import type { CaseUIMessage } from "@/lib/domain";
 import { pl } from "@/lib/i18n/pl";
 import { isNearBottom } from "@/components/chat/scroll";
 
-const chatMocks = vi.hoisted(() => ({ useChat: vi.fn() }));
+const chatMocks = vi.hoisted(() => ({ useChat: vi.fn(), providerAutoScroll: [] as (boolean | undefined)[] }));
 vi.mock("@ai-sdk/react", () => ({ useChat: chatMocks.useChat }));
+vi.mock("@/components/ui/message-scroller", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/components/ui/message-scroller")>();
+  const React = await import("react");
+  return {
+    ...actual,
+    MessageScrollerProvider: (props: React.ComponentProps<typeof actual.MessageScrollerProvider>) => {
+      chatMocks.providerAutoScroll.push(props.autoScroll);
+      return React.createElement(actual.MessageScrollerProvider, props);
+    },
+  };
+});
 
 import { ChatView } from "@/components/chat";
 
@@ -41,6 +52,7 @@ function ui() {
 }
 
 beforeEach(() => {
+  chatMocks.providerAutoScroll.length = 0;
   window.scrollTo = vi.fn();
   HTMLElement.prototype.scrollTo = vi.fn();
   window.matchMedia = vi.fn().mockImplementation((query: string) => ({
@@ -92,6 +104,18 @@ describe("Q5.2 first view starts at the top", () => {
     expect(viewport.scrollTop).toBe(0);
     expect(document.querySelector('[data-message-id="a1"]')?.getAttribute("data-scroll-anchor")).toBe("false");
     expect(document.querySelector("[data-pending-scroll]")).toBeNull();
+    expect(chatMocks.providerAutoScroll.at(-1)).toBe(false);
+  });
+
+  it("enables automatic scrolling only after the customer sends a message", () => {
+    setChat([first]);
+    render(ui());
+    expect(chatMocks.providerAutoScroll.at(-1)).toBe(false);
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Wiadomość" }), { target: { value: "Pytanie" } });
+    fireEvent.click(screen.getByRole("button", { name: pl.chat.send }));
+
+    expect(chatMocks.providerAutoScroll.at(-1)).toBe(true);
   });
 });
 

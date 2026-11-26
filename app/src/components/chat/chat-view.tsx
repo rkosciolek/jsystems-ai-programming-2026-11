@@ -235,9 +235,6 @@ export function ChatView({ caseId, caseSummary, thumbnailUrl, firstMessage, onNe
         </div>
         <div className="contents sm:flex sm:flex-wrap sm:items-center sm:gap-3">
           <DecisionBadge decision={decision} />
-          {caseExpired ? (
-            <Button type="button" className="h-8 px-3 text-sm sm:h-[47px] sm:px-[50px] sm:text-[18px]" onClick={onNewCase}>{pl.chat.newCase}</Button>
-          ) : (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button type="button" className="h-8 px-3 text-sm sm:h-[47px] sm:px-[50px] sm:text-[18px]">{pl.chat.newCase}</Button>
@@ -253,7 +250,6 @@ export function ChatView({ caseId, caseSummary, thumbnailUrl, firstMessage, onNe
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          )}
         </div>
       </header>
 
@@ -265,7 +261,7 @@ export function ChatView({ caseId, caseSummary, thumbnailUrl, firstMessage, onNe
         </div>
       )}
 
-      <MessageScrollerProvider autoScroll defaultScrollPosition="start">
+      <MessageScrollerProvider autoScroll={stickToBottom} defaultScrollPosition="start">
         <MessageScroller data-testid="chat-message-scroller" className="min-h-[14rem] flex-1">
           <MessageScrollerViewport aria-label={pl.chat.ui.conversation} tabIndex={0} onScroll={(event) => { setStickToBottom(isNearBottom(event.currentTarget)); }}>
             <MessageScrollerContent role="log" aria-label={pl.chat.ui.conversation} className="gap-4 py-3">
