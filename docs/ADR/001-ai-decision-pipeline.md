@@ -261,6 +261,8 @@ The *Cited* column lists the exact `citedSections` array elements. Each element 
     - When it is `applied: false`, the text explains why the decision stays.
     - Enforcement: `stopWhen` allows 2 steps. Unit tests cover the stream assembly.
     - Server guard: if text deltas arrive before the tool call in the same turn, the server does not emit `data-decision` for that turn, logs `revision_order_violation`, and leaves the badge unchanged. The text may then be inconsistent; manual QA watches for this (TD-104).
+  - **One tool call per turn (amendment 2026-11-26, Q4.2):** after `revise_decision` has run once, `prepareStep` removes it from `activeTools`; a repeated tool call in the same turn is dropped from the stream. `toolChoice: 'none'` is not used because AI SDK 7 throws `AI_ToolChoiceViolationError` when a model still returns a tool call.
+  - **Fallback text (amendment 2026-11-26, Q4.2):** when a revision was applied and the model wrote no text after the tool result (observed with the real model), the server writes a code-built text part starting with `**Zmieniona ocena**` (previous and new decision labels, reason, next step; strings in `pl.ts`), followed by the disclaimer part, both before `finish`.
   - **Limit:** at most 2 steps (tool call + text). A revision that violates the hard constraints, checked on the corrected facts, returns `{applied: false, violation}`, and the model must explain instead.
 - **Stream assembly:**
   - `createUIMessageStream` merges `toUIMessageStream({ stream: result.stream, sendReasoning: false, onError: masked Polish message })`.

@@ -83,6 +83,17 @@ export const pl = {
     newCase: "Nowa sprawa",
     newCaseConfirm: "Rozpocząć nową sprawę? Bieżąca rozmowa zostanie utracona.",
     revisedAssessment: "Zmieniona ocena",
+    revision: {
+      previous: "Poprzednia ocena",
+      next: "Nowa ocena",
+      reason: "Powód",
+      nextSteps: {
+        accepted: "Kolejny krok: nasz zespół serwisowy potwierdzi tę ocenę i poinformuje Cię o dalszych działaniach.",
+        rejected: "Kolejny krok: jeśli masz nowe informacje dotyczące zgłoszenia, napisz o nich tutaj, a ponownie sprawdzę ocenę.",
+        needs_info: "Kolejny krok: uzupełnij brakujące informacje w tej rozmowie, a ponownie sprawdzę ocenę.",
+        escalated: "Kolejny krok: Twoją sprawę przejmie specjalista z naszego zespołu serwisowego i skontaktuje się z Tobą.",
+      },
+    },
     sections: {
       greeting: "Dzień dobry",
       summary: "Podsumowanie zgłoszenia",

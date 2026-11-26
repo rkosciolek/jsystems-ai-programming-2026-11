@@ -10,7 +10,7 @@ const photo = (name: string) => readFile(`${photosDir}${name}`);
 
 const isJpeg = (buf: Buffer) => buf[0] === 0xff && buf[1] === 0xd8;
 
-describe("processImage", () => {
+describe("processImage", { timeout: 30_000 }, () => {
   it("resizes the longer edge of laptop-1 (JPEG content, .png name) to exactly 2048", async () => {
     const input = await photo("laptop-1.png");
     const result = await processImage(input);

@@ -17,11 +17,13 @@ import {
   LOG_FIELDS,
   ReviseDecisionInputSchema,
   makeCaseInputSchema,
+  makeReviseDecisionInputSchema,
   todayInWarsaw,
 } from "../../../src/lib/domain";
 
 const TODAY = "2026-11-26";
 const MSG_MODEL = "Podaj nazwę lub model urządzenia (2–100 znaków).";
+const MSG_INVALID_DATE = "Podaj poprawną datę zakupu.";
 const MSG_FUTURE = "Data zakupu nie może być z przyszłości.";
 const MSG_DESCRIPTION = "Opisz problem (min. 20 znaków).";
 
@@ -145,6 +147,16 @@ describe("makeCaseInputSchema", () => {
 
     it("accepts dates older than the policy periods", () => {
       expect(schema().safeParse({ ...validComplaint, purchaseDate: "2019-03-04" }).success).toBe(true);
+    });
+
+    it("accepts the lower bound 2000-01-01", () => {
+      expect(schema().safeParse({ ...validComplaint, purchaseDate: "2000-01-01" }).success).toBe(true);
+    });
+
+    it.each(["1999-12-31", "0326-03-04", "1900-01-01"])("rejects %s as before the lower bound with the invalid-date message", (value) => {
+      const result = schema().safeParse({ ...validComplaint, purchaseDate: value });
+      expect(result.success).toBe(false);
+      expect(messagesAt(result, "purchaseDate")).toEqual([MSG_INVALID_DATE]);
     });
 
     it("rejects tomorrow with the AC-05 message", () => {
@@ -363,6 +375,22 @@ describe("ReviseDecisionInputSchema (ADR-001 section 3.7)", () => {
     expect(ReviseDecisionInputSchema.safeParse({ newDecision: "accepted", reason: "x", corrections: { purchaseDate: "20.11.2026" } }).success).toBe(false);
   });
 
+  it("rejects a purchaseDate correction before 2000-01-01 with the invalid-date message", () => {
+    const result = makeReviseDecisionInputSchema(TODAY).safeParse({
+      newDecision: "accepted",
+      reason: "x",
+      corrections: { purchaseDate: "1999-12-31" },
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.message)).toEqual([MSG_INVALID_DATE]);
+  });
+
+  it("accepts a purchaseDate correction of exactly 2000-01-01", () => {
+    expect(
+      makeReviseDecisionInputSchema(TODAY).safeParse({ newDecision: "accepted", reason: "x", corrections: { purchaseDate: "2000-01-01" } }).success,
+    ).toBe(true);
+  });
+
   it("rejects a newDecision outside the enum", () => {
     expect(ReviseDecisionInputSchema.safeParse({ newDecision: "approved", reason: "x" }).success).toBe(false);
   });
@@ -392,6 +420,17 @@ describe("CaseSummarySchema and DecisionDataSchema", () => {
 
   it("accepts a data part with previous and reason", () => {
     expect(DecisionDataSchema.safeParse({ decision: "rejected", previous: "accepted", reason: "Nowe fakty." }).success).toBe(true);
+  });
+
+  it("accepts a data part with applied corrections", () => {
+    expect(
+      DecisionDataSchema.safeParse({ decision: "accepted", previous: "rejected", corrections: { purchaseDate: "2026-11-16", channel: "online" } }).success,
+    ).toBe(true);
+    expect(DecisionDataSchema.safeParse({ decision: "accepted", corrections: { channel: "online" } }).success).toBe(true);
+  });
+
+  it("rejects a data part with an invalid corrections channel", () => {
+    expect(DecisionDataSchema.safeParse({ decision: "accepted", corrections: { channel: "mail" } }).success).toBe(false);
   });
 
   it("rejects a data part with an unknown decision", () => {

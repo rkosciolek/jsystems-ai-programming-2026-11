@@ -2,6 +2,7 @@ import { readFile, rm } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CaseInput, CaseUIMessage, Decision } from "@/lib/domain";
+import { pl } from "@/lib/i18n/pl";
 import type { CaseRecord } from "@/server/case-store";
 import { getCaseStore } from "@/server/case-store";
 import { computeFacts } from "@/server/rules";
@@ -194,7 +195,7 @@ describe("chatStream revision tool with captured provider exchanges", () => {
     expect(updated.input).toMatchObject({ channel: "online", purchaseDate: "2026-11-16" });
     expect(updated.facts).toMatchObject({ ageDays: 10, withdrawalOpen: true });
     expect(chunks.find((chunk) => chunk.type === "data-decision")).toMatchObject({
-      data: { decision: "accepted", previous: "rejected", reason: expect.any(String) },
+      data: { decision: "accepted", previous: "rejected", reason: expect.any(String), corrections: { channel: "online" } },
     });
     const text = chunks.filter((chunk) => chunk.type === "text-delta").map((chunk) => String(chunk.delta)).join("");
     expect(text).toContain("**Zmieniona ocena**");
@@ -270,5 +271,44 @@ describe("chatStream revision tool with captured provider exchanges", () => {
     expect(getCaseStore().get(CASE_ID)?.currentDecision).toBe("rejected");
     expect(chunks.some((chunk) => chunk.type === "data-decision")).toBe(false);
     expect(await readFile(LOG_PATH, "utf8")).toContain('"event":"revision_order_violation"');
+  });
+
+  it("runs the tool once when step 2 is a second tool call and writes a code-built fallback text", async () => {
+    const record = makeRecord(returning);
+    getCaseStore().create(record);
+    // Mutation (MUTATIONS.md): step-2 exchange replaced with the captured step-1 tool-call exchange.
+    const replay = createReplayFetch(["llm-chat-tool-step1", "llm-chat-tool-step1"]);
+    const chunks = await readChunks(await chatStream(record, messages(record), AbortSignal.timeout(10_000), { fetch: replay }));
+
+    expect(chunks.filter((chunk) => chunk.type === "data-decision")).toHaveLength(1);
+    expect(getCaseStore().get(CASE_ID)?.revisions).toHaveLength(1);
+    expect(getCaseStore().get(CASE_ID)?.currentDecision).toBe("accepted");
+    expect(replay.requests).toHaveLength(2);
+    const secondBody = JSON.parse(replay.requests[1]!.body ?? "{}") as { tool_choice?: unknown; tools?: unknown[] };
+    expect(secondBody.tool_choice === "none" || !secondBody.tools?.length).toBe(true);
+
+    const text = chunks.filter((chunk) => chunk.type === "text-delta").map((chunk) => String(chunk.delta)).join("");
+    expect(text.startsWith("**Zmieniona ocena**")).toBe(true);
+    expect(text).toContain("Poprzednia ocena: Wstępnie odrzucono. Nowa ocena: Wstępnie zaakceptowano.");
+    expect(text).toContain("Powód: ");
+    expect(text).toContain(pl.chat.revision.nextSteps.accepted);
+    expect(text.split(pl.disclaimer)).toHaveLength(2);
+    expect(text.trimEnd().endsWith(pl.disclaimer)).toBe(true);
+    expect(chunks.some((chunk) => chunk.type === "error" || chunk.type === "tool-input-error")).toBe(false);
+    const finishIndex = chunks.findIndex((chunk) => chunk.type === "finish");
+    expect(chunks.findLastIndex((chunk) => chunk.type === "text-end")).toBeLessThan(finishIndex);
+    expect(await readFile(LOG_PATH, "utf8")).not.toContain('"event":"chat_failed"');
+    expect(chunks.find((chunk) => chunk.type === "finish")).toMatchObject({ messageMetadata: { decision: "accepted" } });
+  });
+
+  it("does not add the fallback text when the model wrote its own text after the tool", async () => {
+    const record = makeRecord(returning);
+    getCaseStore().create(record);
+    const replay = createReplayFetch(["llm-chat-tool-step1", "llm-chat-tool-step2"]);
+    const chunks = await readChunks(await chatStream(record, messages(record), AbortSignal.timeout(10_000), { fetch: replay }));
+    const text = chunks.filter((chunk) => chunk.type === "text-delta").map((chunk) => String(chunk.delta)).join("");
+
+    expect(text).not.toContain("Poprzednia ocena:");
+    expect(text.split(pl.disclaimer)).toHaveLength(2);
   });
 });

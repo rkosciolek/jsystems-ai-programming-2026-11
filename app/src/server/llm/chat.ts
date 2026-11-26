@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   APICallError,
+  NoSuchToolError,
   convertToModelMessages,
   createUIMessageStream,
   isStepCount,
@@ -60,6 +61,16 @@ function errorFailureCode(error: unknown, signal: AbortSignal): "timeout" | "ups
   return "internal";
 }
 
+function revisionFallbackText(revision: { decision: Decision; previous: Decision; reason: string }): string {
+  const { revisedAssessment, revision: texts } = pl.chat;
+  return [
+    `**${revisedAssessment}**`,
+    `${texts.previous}: ${pl.decisions[revision.previous]}. ${texts.next}: ${pl.decisions[revision.decision]}.`,
+    `${texts.reason}: ${revision.reason}`,
+    texts.nextSteps[revision.decision],
+  ].join("\n\n");
+}
+
 function nowIso(): string {
   return new Date().toISOString();
 }
@@ -102,6 +113,7 @@ export async function chatStream(
   let sawTextBeforeToolCall = false;
   let revisionToolInvoked = false;
   let appliedRevision: { decision: Decision; previous: Decision; reason: string } | undefined;
+  let textAfterRevision = false;
   let chatFailureLogged = false;
 
   const queueLog = (entry: Record<string, unknown>) => {
@@ -134,9 +146,15 @@ export async function chatStream(
         messages: await convertToModelMessages(messages),
         providerOptions: { openrouter: { reasoning: { effort: env.LLM_REASONING_EFFORT } } },
         abortSignal: signal,
+        // Two steps: tool call, then text. After the tool has run once in this turn (applied or not)
+        // the model may not call it again: later steps get no tools (Q4.2).
         stopWhen: isStepCount(2),
+        prepareStep: () => (revisionToolInvoked ? { activeTools: [] } : {}),
         onChunk({ chunk }) {
-          if (chunk.type === "text-delta") sawTextBeforeToolCall = true;
+          if (chunk.type === "text-delta" && chunk.text.trim().length > 0) {
+            sawTextBeforeToolCall = true;
+            if (appliedRevision) textAfterRevision = true;
+          }
         },
         tools: {
           revise_decision: tool({
@@ -210,9 +228,15 @@ export async function chatStream(
               if (!updated) return { applied: false, violation: "case_not_found" };
 
               appliedRevision = { decision: toolInput.newDecision, previous, reason: toolInput.reason };
+              const appliedCorrections = correctionEntries.length > 0 ? toolInput.corrections : undefined;
               writer.write({
                 type: "data-decision",
-                data: { decision: toolInput.newDecision, previous, reason: toolInput.reason },
+                data: {
+                  decision: toolInput.newDecision,
+                  previous,
+                  reason: toolInput.reason,
+                  ...(appliedCorrections ? { corrections: appliedCorrections } : {}),
+                },
               });
               queueLog({
                 event: "decision_revised",
@@ -235,6 +259,8 @@ export async function chatStream(
         sendFinish: false,
         sendReasoning: false,
         onError(error) {
+          // A repeated revise_decision call after the tool was withdrawn is not a chat failure (Q4.2).
+          if (revisionToolInvoked && NoSuchToolError.isInstance(error)) return pl.errors.chatSend;
           if (!chatFailureLogged) {
             chatFailureLogged = true;
             const failureCode = errorFailureCode(error, signal);
@@ -248,20 +274,18 @@ export async function chatStream(
 
       let resolveMerged!: () => void;
       const merged = new Promise<void>((resolve) => { resolveMerged = resolve; });
-      const withDisclaimer = new ReadableStream<InferUIMessageChunk<CaseUIMessage>>({
+      const withoutRepeatedToolCalls = new ReadableStream<InferUIMessageChunk<CaseUIMessage>>({
         async start(controller) {
           const reader = child.getReader();
+          let finishedSteps = 0;
           try {
             while (true) {
               const { done, value } = await reader.read();
               if (done) break;
+              if (value.type === "finish-step") finishedSteps += 1;
+              // Q4.2: drop a repeated revise_decision call from later steps; the tool already ran once.
+              if (finishedSteps > 0 && revisionToolInvoked && value.type.startsWith("tool-input")) continue;
               controller.enqueue(value);
-            }
-            if (appliedRevision) {
-              const id = `${record.caseId}-revision-disclaimer`;
-              controller.enqueue({ type: "text-start", id });
-              controller.enqueue({ type: "text-delta", id, delta: `\n\n${pl.disclaimer}` });
-              controller.enqueue({ type: "text-end", id });
             }
             controller.close();
           } catch (error) {
@@ -272,8 +296,21 @@ export async function chatStream(
           }
         },
       });
-      writer.merge(withDisclaimer);
+      writer.merge(withoutRepeatedToolCalls);
       await merged;
+
+      if (appliedRevision) {
+        if (!textAfterRevision) {
+          const fallbackId = `${record.caseId}-revision-fallback`;
+          writer.write({ type: "text-start", id: fallbackId });
+          writer.write({ type: "text-delta", id: fallbackId, delta: revisionFallbackText(appliedRevision) });
+          writer.write({ type: "text-end", id: fallbackId });
+        }
+        const id = `${record.caseId}-revision-disclaimer`;
+        writer.write({ type: "text-start", id });
+        writer.write({ type: "text-delta", id, delta: `\n\n${pl.disclaimer}` });
+        writer.write({ type: "text-end", id });
+      }
 
       const current = store.get(record.caseId);
       writer.write({ type: "finish", messageMetadata: { decision: current?.currentDecision ?? record.currentDecision } });

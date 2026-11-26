@@ -60,10 +60,17 @@ function isRealIsoDate(value: string): boolean {
 
 const isoDate = z.string().refine(isRealIsoDate, { message: pl.errors.purchaseDateInvalid });
 
+/** Earliest accepted purchase date (Q4.3); anything older is a typo such as year 0326. */
+export const MIN_PURCHASE_DATE = "2000-01-01";
+
 function dateNotAfter(today: string) {
-  return isoDate.refine((value) => value <= today || !isRealIsoDate(value), {
-    message: pl.errors.purchaseDateFuture,
-  });
+  return isoDate
+    .refine((value) => value <= today || !isRealIsoDate(value), {
+      message: pl.errors.purchaseDateFuture,
+    })
+    .refine((value) => value >= MIN_PURCHASE_DATE || !isRealIsoDate(value), {
+      message: pl.errors.purchaseDateInvalid,
+    });
 }
 
 export function makeCaseInputSchema(today: string) {
@@ -185,6 +192,7 @@ export const DecisionDataSchema = z.object({
   decision: z.enum(DECISIONS),
   previous: z.enum(DECISIONS).optional(),
   reason: z.string().optional(),
+  corrections: z.object({ purchaseDate: z.string().optional(), channel: z.enum(CHANNELS).optional() }).optional(),
 });
 export type DecisionData = z.infer<typeof DecisionDataSchema>;
 

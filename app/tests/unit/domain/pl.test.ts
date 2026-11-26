@@ -65,6 +65,22 @@ const PRD_UI_STRINGS = [
   "Przygotowanie oceny",
 ];
 
+describe("pl.chat.revision (fallback text for an applied revision)", () => {
+  it("has the labels used by the server-built fallback text", () => {
+    expect(pl.chat.revision).toMatchObject({
+      previous: "Poprzednia ocena",
+      next: "Nowa ocena",
+      reason: "Powód",
+    });
+  });
+
+  it("has one next-steps sentence per decision", () => {
+    for (const decision of ["accepted", "rejected", "needs_info", "escalated"] as const) {
+      expect(pl.chat.revision.nextSteps[decision].length).toBeGreaterThan(20);
+    }
+  });
+});
+
 describe("pl (Polish UI strings)", () => {
   it("exports the application name exactly", () => {
     expect(pl.appName).toBe("Hardware Service Decision Copilot");
