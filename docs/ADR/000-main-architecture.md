@@ -272,9 +272,13 @@ The repo-root `.env.example` already defines `OPENROUTER_API_KEY` and `LLM_MODEL
 
 **Smoke test, 2026-11-26:** `opencode run -m openrouter/openai/gpt-6-luna` with `assets/example-images/laptop-1.png` attached correctly described "a laptop" with "the screen cracked, visible impact point on the left side". This confirms that Luna accepts image input through OpenRouter.
 
-**Still UNVERIFIED:**
-- Image input through the AI SDK provider together with structured output.
-- Any call to `typesafe/jev-1.14`, which needs the app's API key (T03 of the plan).
+**Gate results, 2026-11-26 (T03a, real calls with the app's key):**
+- `typesafe/jev-1.14` answered a Decisions request with an image and the full complaint question set (HTTP 200, snapshot `typesafe/jev-1.14-20261014`). Recorded in `tests/fixtures/captured/jev-*`.
+- `openai/gpt-6-luna` answered through `@openrouter/ai-sdk-provider` with `generateText` + `Output.object` and an image file part (`{device: "Laptop"}`).
+- `GET /api/v1/models` lists `input_modalities` = `file`, `image`, `text` for `openai/gpt-6-luna`, so `VISION_MODEL` stays the same ID.
+- `createOpenRouter({ apiKey, fetch })` accepts an injected `fetch`; the provider's chat request went through it (verified, and used by the recorder for all recordings).
+- Finding: Jev rejects images above 1568 px per side or 2,458,624 px in total (`400 Invalid image dimensions`). The ADR-002 §3.3 output (2048 px edge) fails for `laptop-1.png`. The Jev request must use an image shrunk to 1568 px per side.
+
 **Decision:** `LLM_MODEL=openai/gpt-6-luna` handles decision and chat. `VISION_MODEL` defaults to the same ID. **Before implementing the vision step**, the agent makes one real call that sends `assets/example-images/laptop-1.png`, and checks `/api/v1/models` for the model's `input_modalities`. If image input is not supported, it sets `VISION_MODEL` to a model whose `input_modalities` include `image` and whose `supported_parameters` include `structured_outputs`, and records the choice in this ADR. The same gate verifies that `typesafe/jev-1.14` answers a real Decisions request with an image. The captured response is saved to `tests/fixtures/captured/` (AGENTS.md mock rule).
 **Rejected alternatives:**
 - Hard-coding unverified IDs: risks a broken pipeline at the first real call.

@@ -92,6 +92,7 @@ Steps:
   6. Strip metadata (EXIF/GPS are not kept).
 - **Output:** `ProcessedImage`.
 - **Why JPEG:** Jev accepts only PNG/JPEG, so one format for every model keeps the payload small and predictable.
+- **Jev size limit (amendment 2026-11-26, T03a):** the real Decisions API rejects images above **1568 px per side or 2.46 Mpx** with `400 Invalid image dimensions` (observed with `laptop-1.png` at 1975 × 2048). `images.process` keeps the ≤ 2048 px output for the LLMs (AC-17). The classifier client derives a second JPEG that fits inside 1568 × 1568 (which is ≤ 2.46 Mpx) before calling Jev. Recordings in `tests/fixtures/captured/jev-*` were made with that size.
 - **Budget:** typical inputs process in under 1.5 s on the VM (manual QA measurement; not a hard test).
 - **Storage:** the original and processed images are never written to disk and never logged.
 

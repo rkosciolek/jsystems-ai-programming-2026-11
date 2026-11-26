@@ -1,0 +1,17 @@
+{
+  "method": "POST",
+  "url": "https://openrouter.ai/api/v1/chat/completions",
+  "headers": {
+    "content-type": "application/json",
+    "user-agent": "ai/7.0.183 ai-sdk/provider-utils/5.0.42 runtime/node.js/24"
+  },
+  "body": {
+    "model": "openai/gpt-6-luna",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Say OK."
+      }
+    ]
+  }
+}
