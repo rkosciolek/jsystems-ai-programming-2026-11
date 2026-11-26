@@ -4,6 +4,21 @@ export const pl = {
     "To jest wstępna ocena przygotowana automatycznie. Ostateczną decyzję potwierdzi nasz zespół serwisowy w ciągu 14 dni od otrzymania zgłoszenia.",
   form: {
     title: "Zgłoś reklamację lub zwrot",
+    intro:
+      "Wypełnij formularz i dodaj jedno zdjęcie urządzenia, a otrzymasz wstępną ocenę zgłoszenia.",
+    labels: {
+      caseType: "Rodzaj zgłoszenia",
+      category: "Kategoria urządzenia",
+      categoryPlaceholder: "Wybierz kategorię",
+      model: "Nazwa lub model urządzenia",
+      purchaseDate: "Data zakupu",
+      channel: "Miejsce zakupu",
+      complaintDescription: "Opis problemu",
+      returnDescription: "Powód zwrotu",
+      photo: "Zdjęcie urządzenia",
+      dropzone: "Przeciągnij zdjęcie tutaj lub",
+      requiredMarker: "(wymagane)",
+    },
     caseType: {
       complaint: { label: "Reklamacja", subtitle: "Urządzenie jest wadliwe lub uszkodzone" },
       return: { label: "Zwrot", subtitle: "Chcę oddać sprawne urządzenie" },
@@ -52,6 +67,7 @@ export const pl = {
     needs_info: "Wymaga uzupełnienia",
     escalated: "Przekazano do specjalisty",
   },
+  common: { cancel: "Anuluj" },
   chat: {
     send: "Wyślij",
     retry: "Ponów",
