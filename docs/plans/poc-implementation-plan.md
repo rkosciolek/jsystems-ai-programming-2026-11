@@ -9,6 +9,7 @@
 | 2 | Whole application |
 | 3 | Real-stack testing, mocks only from recorded calls, independent-review fixes |
 | 4 | Your answers to the open questions (§11) and **phases, each closed by a manual QA gate with `playwright-cli`** (§5) |
+| 5 | **Token-saving execution amendment** (§4.3): QA gates, recordings, mechanical scaffold work and test runs move to subagents; the orchestrator keeps contracts, prompts, briefs, acceptance and commits |
 
 **Branches:**
 - The documents live on `feat/prd-adr-plan`, which is based on `feat/design-system`.
@@ -201,6 +202,21 @@ Every brief is saved **in the repository** at `docs/.agents_brief/<plan_name>-<b
    - Report contradictions instead of resolving them.
 
 A worker never accepts its own work. The orchestrator records in §13 and on the issue: the brief and report paths, the worker, the session ID and the acceptance result.
+
+### 4.3 Token-saving amendment (owner direction, 2026-11-26) — overrides the Owner column where they differ
+
+The orchestrator runs on the most expensive model, so it **orchestrates and does not execute**:
+
+| Work | New owner | Orchestrator does only |
+|---|---|---|
+| Rest of T02 (configs, scripts, `app/AGENTS.md`, `opencode.json`) | Haiku subagent | Brief, `git diff --stat`, re-run of the checks |
+| T03a / T03b capture scripts and runs | Haiku subagent (real calls) | Check 4 files per recording, no secrets, hashes |
+| QA gates Q1–Q6 (`playwright-cli`, screenshots, gate README) | **QA subagent, model `sonnet`** (visual judgement needs it) | Read the gate report; look at 1–2 key screenshots |
+| Running lint / typecheck / tests / build for acceptance | Haiku subagent returning counts only | Accept or reject on the counts |
+| E2E runs (T19), T18 checks, T23 video | Haiku or Sonnet subagent | Read the report |
+| Diff review | `git diff --stat` + tests; full diff only for hotspots | Deep review stays in T21 |
+
+Briefs point to document sections by path and § number instead of pasting excerpts; workers read them themselves. The orchestrator keeps: T04 contracts, T09a prompts, briefs, decisions, commits, issue updates.
 
 **Concurrency:** at most 3 workers at once, only on disjoint files. Each brief lists the concurrent tasks. One checkout; no worktree.
 

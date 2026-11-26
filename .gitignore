@@ -5,6 +5,7 @@ coverage/
 dist/
 build/
 *.db
+app/var/
 .env*
 !.env.example
 secrets
