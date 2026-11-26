@@ -7,6 +7,7 @@ import { getEnv } from '@/server/env';
 import { getPolicy } from '@/server/policies';
 import { getPrompt } from '@/server/prompts';
 import { checkLlmOutcome, type ClassifierResult } from '@/server/rules';
+import { normalizeCitedSections } from './citations';
 import { finalizeFirstMessage as finalizeTemplate, renderFirstMessage, validateFirstMessage } from '@/server/templates';
 import type { LlmCallDependencies } from './analyze-image';
 import { getOpenRouter } from './provider';
@@ -97,7 +98,7 @@ async function generateDecision(
       maxRetries: 1,
       abortSignal: signal,
     });
-    return { ...result.output, path: 'llm' };
+    return { ...result.output, citedSections: normalizeCitedSections(result.output.citedSections), path: 'llm' };
   } catch (error) {
     throw toLlmError(error, signal);
   }

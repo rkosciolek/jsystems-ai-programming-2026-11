@@ -196,24 +196,7 @@ describe("LLM layer with real OpenRouter provider and captured exchanges", () =>
       type: "return" as const,
     },
   ])("decides from the $type policy recording and isolates policy text", async ({ input, recording, type }) => {
-    // Declared mutation (MUTATIONS.md): the real return recording writes section ranges such as
-    // "§3 ust. 1–2" while citedSections lists "§3 ust. 2" separately, which validateFirstMessage rejects.
-    // Expand the ranges so the recorded decision stays on the valid-first-attempt path under test.
-    const recordedOutcome = await recordedJson<Record<string, unknown>>(recording);
-    const expandedMessage = String(recordedOutcome.messageMarkdown).replace(
-      /§(\d+) ust\. (\d+)–(\d+)/g,
-      "§$1 ust. $2, §$1 ust. $3",
-    );
-    const replay = createReplayFetch([recording], {
-      mutations:
-        type === "return"
-          ? [{
-              recordingName: recording,
-              path: "choices.0.message.content",
-              value: JSON.stringify({ ...recordedOutcome, messageMarkdown: expandedMessage }),
-            }]
-          : [],
-    });
+    const replay = createReplayFetch([recording]);
     const { classifier, analysis, facts } = await prepareDecision(input, type);
     const result = await decide(input, facts, analysis, classifier, CASE_ID, AbortSignal.timeout(5_000), {
       fetch: replay,

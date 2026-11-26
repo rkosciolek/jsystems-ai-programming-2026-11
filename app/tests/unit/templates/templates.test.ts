@@ -254,3 +254,36 @@ describe("validateFirstMessage", () => {
     }
   });
 });
+
+describe("validateFirstMessage section ranges", () => {
+  const body = (text: string) => `${HEADINGS.join("\nTreść sekcji.\n\n")}\n${text}`;
+
+  it("accepts a cited section covered by an en dash range in the text", () => {
+    expect(validateFirstMessage(body("Zob. §3 ust. 1–2)."), ["§3 ust. 1", "§3 ust. 2"])).toEqual({ ok: true });
+  });
+
+  it("accepts a cited section covered by a hyphen range in the text", () => {
+    expect(validateFirstMessage(body("Zob. §6 ust. 2-3."), ["§6 ust. 3"])).toEqual({ ok: true });
+  });
+
+  it("accepts a cited section listed by comma in the text", () => {
+    expect(validateFirstMessage(body("Zob. §2 ust. 4, 6."), ["§2 ust. 6"])).toEqual({ ok: true });
+    expect(validateFirstMessage(body("Zob. §2 ust. 4, §2 ust. 6."), ["§2 ust. 6"])).toEqual({ ok: true });
+  });
+
+  it("rejects a cited section outside the range written in the text", () => {
+    const result = validateFirstMessage(body("Zob. §3 ust. 1–2."), ["§3 ust. 3"]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.problems.join(" ")).toMatch(/§3 ust. 3/);
+  });
+
+  it("does not let a range for another section cover the cited section", () => {
+    const result = validateFirstMessage(body("Zob. §2 ust. 1–3."), ["§3 ust. 2"]);
+    expect(result.ok).toBe(false);
+  });
+
+  it("still rejects a cited section that appears nowhere in the text", () => {
+    const result = validateFirstMessage(body("Zob. §1 ust. 2."), ["§3 ust. 1"]);
+    expect(result.ok).toBe(false);
+  });
+});

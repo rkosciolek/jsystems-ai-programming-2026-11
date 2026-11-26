@@ -8,6 +8,7 @@ import {
   type DateFacts,
 } from '@/lib/domain';
 import { pl } from '@/lib/i18n/pl';
+import { textCitesSection } from '@/server/llm/citations';
 import type { ClassifierResult, RuleOutcome } from '@/server/rules';
 
 const HEADINGS = [
@@ -336,7 +337,7 @@ export function validateFirstMessage(
   for (const section of citedSections) {
     if (!CITED_SECTION_REGEX.test(section)) {
       problems.push(`Nieprawidłowy format cytowania: ${section}.`);
-    } else if (!markdown.includes(section)) {
+    } else if (!textCitesSection(markdown, section)) {
       problems.push(`Cytowane postanowienie ${section} nie występuje w treści wiadomości.`);
     }
   }
