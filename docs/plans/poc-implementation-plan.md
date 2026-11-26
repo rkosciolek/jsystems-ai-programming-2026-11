@@ -1,7 +1,7 @@
 # Implementation Plan — Hardware Service Decision Copilot PoC (whole application)
 
 > **Status: DRAFT, awaiting review by the repository owner.** This plan does not authorize execution, starting agents, pushing, publishing or merging.
-> It supersedes the slice-only draft `docs/plans/slice-1-complaint-implementation-plan.md`, which can be deleted. The sandbox did not allow me to delete it.
+> It supersedes the earlier slice-only draft, which has been removed.
 
 **Date:** 2026-11-26
 **Branch (planned):** `feat/poc-app`, stacked on `feat/design-system` (open PR #2). The PR targets `feat/design-system`, then is retargeted to `main` after PR #2 merges.
