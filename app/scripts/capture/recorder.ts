@@ -16,7 +16,15 @@ export interface CaptureMeta {
 export function recordingFetch(name: string, meta: CaptureMeta): typeof fetch {
   return async (input, init) => {
     const response = await fetch(input, init);
-    const bytes = Buffer.from(await response.clone().arrayBuffer());
+    // Read the clone chunk by chunk so the chunk boundaries of streamed (SSE) bodies are kept.
+    const chunks: Buffer[] = [];
+    const reader = response.clone().body?.getReader();
+    while (reader) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(Buffer.from(value));
+    }
+    const bytes = Buffer.concat(chunks);
     const dir = join(CAPTURE_DIR, name);
     mkdirSync(dir, { recursive: true });
 
@@ -43,7 +51,16 @@ export function recordingFetch(name: string, meta: CaptureMeta): typeof fetch {
     });
     writeFileSync(
       join(dir, "response.meta.json"),
-      `${JSON.stringify({ status: response.status, statusText: response.statusText, headers: responseHeaders }, null, 2)}\n`,
+      `${JSON.stringify(
+        {
+          status: response.status,
+          statusText: response.statusText,
+          headers: responseHeaders,
+          chunkSizes: chunks.map((c) => c.length),
+        },
+        null,
+        2,
+      )}\n`,
     );
     writeFileSync(join(dir, "response.body"), bytes);
 
@@ -52,7 +69,9 @@ export function recordingFetch(name: string, meta: CaptureMeta): typeof fetch {
       const parsed = JSON.parse(bytes.toString("utf8")) as { model?: string };
       snapshot = parsed.model ?? null;
     } catch {
-      // error bodies may not name a model
+      // not one JSON document: streamed (SSE) body, the snapshot is in the first `data:` chunk
+      const m = /^data: (\{.*"model":"([^"]+)")/m.exec(bytes.toString("utf8"));
+      snapshot = m?.[2] ?? null;
     }
     writeFileSync(
       join(dir, "capture.json"),
@@ -68,5 +87,15 @@ export function recordingFetch(name: string, meta: CaptureMeta): typeof fetch {
       )}\n`,
     );
     return response;
+  };
+}
+
+/** Records a multi-exchange turn (for example tool call + final text): the n-th request goes to names[n]. */
+export function recordingSequence(names: string[], meta: CaptureMeta): typeof fetch {
+  let index = 0;
+  return async (input, init) => {
+    const name = names[index++];
+    if (!name) throw new Error(`Unexpected exchange #${index}: only ${names.length} were expected`);
+    return recordingFetch(name, meta)(input, init);
   };
 }
