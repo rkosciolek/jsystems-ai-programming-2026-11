@@ -19,3 +19,8 @@ Do not edit application files or tests; no git writes; never open/print/grep `.e
 
 ## Final answer (≤ 20 lines)
 Verdict, check results, E2E counts per project, smoke pass/fail, defects, README path.
+
+## Also verify (Q5 fix round, not yet browser-checked)
+- Q5.1: scroll up while a reply is pending → position kept, scroll-to-latest button shown; at the bottom → follows new messages.
+- Q5.2: entering the chat shows the top of the first message ("Dzień dobry").
+- Q5.3: summary dates DD.MM.RRRR; Q5.4: >2000-char complaint shows the max-length message; Q5.5: progress screen has an h1 and a main landmark (axe).
