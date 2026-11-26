@@ -285,6 +285,35 @@ describe("ChatView", () => {
     expect(screen.getAllByRole("button", { name: pl.chat.newCase }).length).toBeGreaterThan(0);
   });
 
+  it("does not show the generic send error or retry when the case expired (Q4.7)", async () => {
+    setChatState({ messages: [firstMessage, userMessage("Dopytanie")], status: "error", error: new Error("404") });
+    renderChat();
+    expect(screen.getByText(pl.errors.chatSend)).toBeInTheDocument();
+    const transport = chatMocks.useChat.mock.calls[0]?.[0].transport;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: "case_not_found" }), { status: 404, headers: { "Content-Type": "application/json" } })),
+    );
+
+    await act(async () => {
+      await transport.fetch("/api/chat", { method: "POST" });
+    });
+
+    expect(await screen.findByText(pl.errors.caseExpired)).toBeInTheDocument();
+    expect(screen.queryByText(pl.errors.chatSend)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: pl.chat.retry })).not.toBeInTheDocument();
+  });
+
+  it("keeps the message list usable on small screens (Q4.6)", () => {
+    const { container } = renderChat();
+
+    const scroller = screen.getByTestId("chat-message-scroller");
+    expect(scroller.className).toContain("min-h-[14rem]");
+    expect(container.querySelector("main")?.className).toContain("gap-2");
+    expect(screen.getByText(pl.chat.ui.messageLabel, { selector: "label" }).className).toContain("sr-only");
+    expect(screen.getByRole("textbox", { name: "Wiadomość" })).toHaveAttribute("rows", "1");
+  });
+
   it("collapses the case summary by default below 768 pixels", () => {
     renderChat();
 
@@ -396,6 +425,6 @@ describe("ChatView", () => {
     const { container } = renderChat();
 
     expect(container.querySelector("main")?.className).toMatch(/h-\[calc\(100dvh-/);
-    expect(screen.getByTestId("chat-message-scroller").className).toContain("min-h-0");
+    expect(screen.getByTestId("chat-message-scroller").className).toContain("flex-1");
   });
 });

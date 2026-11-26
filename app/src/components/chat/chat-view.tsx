@@ -38,7 +38,7 @@ function DecisionBadge({ decision }: { decision: Decision }) {
     <span
       role="img"
       aria-label={`Decyzja: ${label}`}
-      className="inline-flex items-center gap-2 rounded-full border-2 bg-white px-3 py-1 text-sm font-bold text-primary"
+      className="order-3 inline-flex items-center gap-2 rounded-full border-2 bg-white px-2 py-0.5 text-xs font-bold sm:order-none sm:px-3 sm:py-1 sm:text-sm text-primary"
       style={{ borderColor: color }}
     >
       <Icon aria-hidden className="size-4" style={{ color }} />
@@ -137,12 +137,12 @@ function CaseSummaryPanel({ summary, thumbnailUrl }: { summary: CaseSummary; thu
 
   return (
     <Collapsible open={open} onOpenChange={setOpenOverride} className="rounded-xl border border-border bg-white">
-      <CollapsibleTrigger className="flex min-h-12 w-full items-center justify-between gap-3 px-4 py-3 text-left font-bold text-primary">
+      <CollapsibleTrigger className="flex min-h-10 w-full items-center justify-between gap-3 px-4 py-2 sm:min-h-12 sm:py-3 text-left font-bold text-primary">
         <span>{pl.chat.ui.caseDetails}</span>
         <ChevronDown aria-hidden className={`size-5 transition-transform ${open ? "rotate-180" : ""}`} />
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <div className="grid gap-4 border-t border-border px-4 py-4 sm:grid-cols-[1fr_auto]">
+        <div className="grid max-h-[30dvh] gap-4 overflow-y-auto border-t border-border px-4 py-3 sm:max-h-none sm:grid-cols-[1fr_auto] sm:py-4">
           <dl className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-x-4 gap-y-2 text-sm">
             <dt className="font-bold text-primary">{pl.form.labels.caseType}</dt>
             <dd>{summary.caseType === "complaint" ? pl.form.caseType.complaint.label : pl.form.caseType.return.label}</dd>
@@ -220,22 +220,22 @@ export function ChatView({ caseId, caseSummary, thumbnailUrl, firstMessage, onNe
   };
 
   return (
-    <main className="mx-auto flex h-[calc(100dvh-4rem)] min-h-[30rem] w-full max-w-[840px] flex-col gap-4 px-4 py-4 sm:py-6 md:h-[calc(100dvh-5rem)]">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+    <main className="mx-auto flex h-[calc(100dvh-4rem)] min-h-[30rem] w-full max-w-[840px] flex-col gap-2 px-4 py-2 sm:gap-4 sm:py-6 md:h-[calc(100dvh-5rem)]">
+      <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border pb-2 sm:pb-4">
         <div className="min-w-0">
-          <h1 className="break-all text-xl font-bold text-primary sm:text-2xl">{caseId}</h1>
-          <p className="mt-1 text-sm font-medium text-muted-foreground">
+          <h1 className="break-all text-lg font-bold text-primary sm:text-2xl">{caseId}</h1>
+          <p className="mt-1 hidden text-sm font-medium sm:block text-muted-foreground">
             {caseSummary.caseType === "complaint" ? pl.form.caseType.complaint.label : pl.form.caseType.return.label}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="contents sm:flex sm:flex-wrap sm:items-center sm:gap-3">
           <DecisionBadge decision={decision} />
           {caseExpired ? (
-            <Button type="button" onClick={onNewCase}>{pl.chat.newCase}</Button>
+            <Button type="button" className="h-8 px-3 text-sm sm:h-[47px] sm:px-[50px] sm:text-[18px]" onClick={onNewCase}>{pl.chat.newCase}</Button>
           ) : (
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button type="button">{pl.chat.newCase}</Button>
+              <Button type="button" className="h-8 px-3 text-sm sm:h-[47px] sm:px-[50px] sm:text-[18px]">{pl.chat.newCase}</Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
@@ -261,7 +261,7 @@ export function ChatView({ caseId, caseSummary, thumbnailUrl, firstMessage, onNe
       )}
 
       <MessageScrollerProvider autoScroll defaultScrollPosition="end">
-        <MessageScroller data-testid="chat-message-scroller" className="flex-1">
+        <MessageScroller data-testid="chat-message-scroller" className="min-h-[14rem] flex-1">
           <MessageScrollerViewport aria-label={pl.chat.ui.conversation} tabIndex={0}>
             <MessageScrollerContent role="log" aria-label={pl.chat.ui.conversation} className="gap-4 py-3">
               {visibleMessages.map((message, index) => (
@@ -276,7 +276,7 @@ export function ChatView({ caseId, caseSummary, thumbnailUrl, firstMessage, onNe
                             {messageText(message)}
                           </div>
                         )}
-                        {status === "error" && index === lastUserIndex && (
+                        {status === "error" && !caseExpired && index === lastUserIndex && (
                           <div className="flex items-center gap-3 text-sm text-destructive" role="alert">
                             <span>{pl.errors.chatSend}</span>
                             <Button type="button" variant="link" className="h-auto p-0 text-destructive" onClick={() => void regenerate()}>
@@ -306,24 +306,24 @@ export function ChatView({ caseId, caseSummary, thumbnailUrl, firstMessage, onNe
         </MessageScroller>
       </MessageScrollerProvider>
 
-      <form onSubmit={submitMessage} className="border-t border-border bg-background pt-4">
-        <label htmlFor="chat-message" className="mb-2 block font-bold text-primary">{pl.chat.ui.messageLabel}</label>
-        <InputGroup className="h-auto min-h-24 items-end rounded-xl bg-white p-2">
+      <form onSubmit={submitMessage} className="border-t border-border bg-background pt-2 sm:pt-4">
+        <label htmlFor="chat-message" className="sr-only font-bold text-primary sm:not-sr-only sm:mb-2 sm:block">{pl.chat.ui.messageLabel}</label>
+        <InputGroup className="h-auto min-h-0 items-end rounded-xl bg-white p-1 sm:min-h-24 sm:p-2">
           <InputGroupTextarea
             id="chat-message"
             aria-label={pl.chat.ui.messageLabel}
             value={input}
             maxLength={2000}
-            rows={3}
+            rows={1}
             placeholder={pl.chat.ui.messagePlaceholder}
             disabled={caseExpired || isBusy}
             onChange={(event) => setInput(event.currentTarget.value.slice(0, 2000))}
             onKeyDown={handleInputKeyDown}
-            className="min-h-16 max-h-40 resize-y border-0 bg-transparent px-2 text-base text-foreground shadow-none focus-visible:ring-0"
+            className="min-h-10 max-h-40 sm:min-h-16 resize-y border-0 bg-transparent px-2 text-base text-foreground shadow-none focus-visible:ring-0"
           />
-          <InputGroupAddon align="block-end" className="justify-between border-t border-border px-2 py-2">
+          <InputGroupAddon align="block-end" className="justify-between border-t border-border px-2 py-1 sm:py-2">
             <span aria-live="polite" className="text-sm text-muted-foreground">{input.length >= 1800 ? `${input.length} / 2000` : ""}</span>
-            <InputGroupButton type="submit" aria-label={pl.chat.send} disabled={sendDisabled} className="h-10 rounded-[22px] border border-accent bg-white px-5 font-bold text-primary hover:bg-muted">
+            <InputGroupButton type="submit" aria-label={pl.chat.send} disabled={sendDisabled} className="h-8 rounded-[22px] border border-accent bg-white px-4 font-bold sm:h-10 sm:px-5 text-primary hover:bg-muted">
               <Send aria-hidden className="size-4" />
               {pl.chat.send}
             </InputGroupButton>
