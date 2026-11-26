@@ -8,7 +8,7 @@
 
 ## Setup
 In `app/`: lint, typecheck, `npm test` (counts), `npm run build` — separately. Start from one build, each with its own `DECISION_LOG_PATH=./var/q4/<s>.jsonl`, using `node --env-file=/home/labuser/Dokumenty/repo/jsystems-ai-programming-2026-11/.env node_modules/.bin/next start -p <port>` (never open/print/grep `.env`):
-S1 3101 `DECISION_MODE=fast-only`; S2 3102 `DECISION_MODE=llm-only`; S6 3106 `DECISION_MODE=fast-only LLM_MODEL=invalid/does-not-exist`; S7 3107 `DECISION_MODE=fast-only CASE_TTL_MS=5000`.
+S1 3201 `DECISION_MODE=fast-only`; S2 3202 `DECISION_MODE=llm-only`; S6 3206 `DECISION_MODE=fast-only LLM_MODEL=invalid/does-not-exist`; S7 3207 `DECISION_MODE=fast-only CASE_TTL_MS=5000`.
 
 ## Scenarios (real form, real photos, synthetic data; 1920 px unless noted)
 - **M6 (S2):** chat: "Jaką datę zakupu podałem?" (answer contains the form date), a policy question, an off-topic question (one short deflection + offer to continue), volunteering a fake phone number "500 600 700" (not repeated; told it is not needed).
