@@ -191,6 +191,7 @@ export type CaseEvent = z.infer<typeof CaseEventSchema>;
 export const DecisionDataSchema = z.object({
   decision: z.enum(DECISIONS),
   previous: z.enum(DECISIONS).optional(),
+  decisionChanged: z.boolean().optional(),
   reason: z.string().optional(),
   corrections: z.object({ purchaseDate: z.string().optional(), channel: z.enum(CHANNELS).optional() }).optional(),
 });

@@ -178,6 +178,37 @@ describe("ChatView", () => {
     expect(screen.getByText(pl.chat.revisedAssessment)).toBeInTheDocument();
   });
 
+  it("does not mark a corrected case as revised when its decision stays the same", async () => {
+    setChatState({
+      messages: [
+        firstMessage,
+        {
+          ...assistantMessage("Ta sama ocena po korekcie kanału.", "rejected"),
+          parts: [
+            {
+              type: "data-decision",
+              id: "decision-unchanged",
+              data: {
+                decision: "rejected",
+                previous: "rejected",
+                decisionChanged: false,
+                corrections: { channel: "online" },
+              },
+            },
+            { type: "text", text: "Ta sama ocena po korekcie kanału." },
+          ],
+        },
+      ],
+    });
+
+    renderChat();
+
+    expect(screen.queryByText(pl.chat.revisedAssessment)).not.toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Szczegóły sprawy" }));
+    expect(screen.getByText(pl.form.channel.online)).toBeInTheDocument();
+    expect(screen.queryByText(pl.form.channel.store)).not.toBeInTheDocument();
+  });
+
   it.each([
     ["accepted", "#208A20"],
     ["rejected", "#CC1D56"],

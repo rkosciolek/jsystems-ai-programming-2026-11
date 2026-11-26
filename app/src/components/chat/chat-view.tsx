@@ -100,7 +100,14 @@ function AgentMessage({ message }: { message: CaseUIMessage }) {
   const text = messageText(message);
   const disclaimerIndex = text.lastIndexOf(pl.disclaimer);
   const body = disclaimerIndex >= 0 ? text.slice(0, disclaimerIndex).trimEnd() : text;
-  const hasRevision = message.parts.some((part) => part.type === "data-decision");
+  const hasRevision = message.parts.some((part) => {
+    if (part.type !== "data-decision") return false;
+    const parsed = DecisionDataSchema.safeParse(part.data);
+    return parsed.success && (
+      parsed.data.decisionChanged === true ||
+      (parsed.data.previous !== undefined && parsed.data.decision !== parsed.data.previous)
+    );
+  });
 
   return (
     <>

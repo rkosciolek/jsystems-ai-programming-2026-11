@@ -423,6 +423,12 @@ describe("CaseSummarySchema and DecisionDataSchema", () => {
     expect(DecisionDataSchema.safeParse({ decision: "rejected", previous: "accepted", reason: "Nowe fakty." }).success).toBe(true);
   });
 
+  it("accepts an optional decisionChanged flag", () => {
+    expect(DecisionDataSchema.safeParse({ decision: "rejected", previous: "rejected", decisionChanged: false }).success).toBe(true);
+    expect(DecisionDataSchema.safeParse({ decision: "accepted", previous: "rejected", decisionChanged: true }).success).toBe(true);
+    expect(DecisionDataSchema.safeParse({ decision: "accepted", decisionChanged: "yes" }).success).toBe(false);
+  });
+
   it("accepts a data part with applied corrections", () => {
     expect(
       DecisionDataSchema.safeParse({ decision: "accepted", previous: "rejected", corrections: { purchaseDate: "2026-11-16", channel: "online" } }).success,

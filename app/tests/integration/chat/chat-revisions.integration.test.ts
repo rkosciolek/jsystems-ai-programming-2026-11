@@ -220,7 +220,10 @@ describe("chatStream revision tool with captured provider exchanges", () => {
     expect(updated.input).toMatchObject({ channel: "online", purchaseDate: "2026-11-16" });
     expect(updated.facts).toMatchObject({ ageDays: 10, withdrawalOpen: true });
     expect(chunks.find((chunk) => chunk.type === "data-decision")).toMatchObject({
-      data: { decision: "accepted", previous: "rejected", reason: expect.any(String), corrections: { channel: "online" } },
+      data: { decision: "accepted", previous: "rejected", decisionChanged: true, reason: expect.any(String), corrections: { channel: "online" } },
+    });
+    expect(chunks.find((chunk) => chunk.type === "tool-output-available")).toMatchObject({
+      output: { applied: true, decisionChanged: true, previous: "rejected" },
     });
     const text = chunks.filter((chunk) => chunk.type === "text-delta").map((chunk) => String(chunk.delta)).join("");
     expect(text).toContain("**Zmieniona ocena**");
@@ -279,9 +282,21 @@ describe("chatStream revision tool with captured provider exchanges", () => {
     const toolOutput = chunks.find((chunk) => chunk.type === "tool-output-available") as { output?: unknown } | undefined;
     const text = chunks.filter((chunk) => chunk.type === "text-delta").map((chunk) => String(chunk.delta)).join("");
 
-    expect(toolOutput?.output).toEqual({ applied: true, previous: "rejected" });
+    expect(toolOutput?.output).toEqual({
+      applied: true,
+      decisionChanged: false,
+      previous: "rejected",
+      note: "Facts corrected; the decision is unchanged. Do not write 'Zmieniona ocena'; explain that the correction was noted and why the decision stays.",
+    });
     expect(getCaseStore().get(CASE_ID)?.currentDecision).toBe("rejected");
-    expect(chunks.find((chunk) => chunk.type === "data-decision")).toMatchObject({ data: { decision: "rejected", previous: "rejected" } });
+    expect(chunks.find((chunk) => chunk.type === "data-decision")).toMatchObject({
+      data: {
+        decision: "rejected",
+        previous: "rejected",
+        decisionChanged: false,
+        corrections: { channel: "online" },
+      },
+    });
     expect(text).not.toContain("**Zmieniona ocena**");
     if (modelText) expect(text).toContain(modelText);
   });

@@ -246,6 +246,7 @@ export async function chatStream(
               }
 
               const previous = current.currentDecision;
+              const decisionChanged = toolInput.newDecision !== previous;
               const updated = store.update(record.caseId, (latest) => ({
                 ...latest,
                 input: correctedInput,
@@ -272,6 +273,7 @@ export async function chatStream(
                 data: {
                   decision: toolInput.newDecision,
                   previous,
+                  decisionChanged,
                   reason: toolInput.reason,
                   ...(appliedCorrections ? { corrections: appliedCorrections } : {}),
                 },
@@ -286,7 +288,14 @@ export async function chatStream(
                 // The stored citations and reason codes describe the earlier decision, not this one.
                 reasonCodes: ["chat_revision"],
               });
-              return { applied: true, previous };
+              return decisionChanged
+                ? { applied: true, decisionChanged: true, previous }
+                : {
+                    applied: true,
+                    decisionChanged: false,
+                    previous,
+                    note: "Facts corrected; the decision is unchanged. Do not write 'Zmieniona ocena'; explain that the correction was noted and why the decision stays.",
+                  };
             },
           }),
         },

@@ -21,3 +21,4 @@
 | llm-chat-tool-step2 | response.body text deltas | Captured text -> label + `Poprzednia ocena: ... Nowa ocena: ...` + the disclaimer sentence | T21.6: the server must not append the disclaimer a second time |
 | llm-chat-tool-step1 | response.body tool arguments | Captured `accepted` with channel correction -> `accepted` without corrections | T21.9: a revision to `accepted` without corrections must be rejected with `accepted_requires_corrections` |
 | llm-chat-tool-step1 | response.body tool arguments | Captured `accepted` with channel correction -> `escalated` / `needs_info` without corrections | T21.9: the remaining targets stay allowed without corrections |
+| llm-chat-tool-step1 | response.body tool arguments | Captured `accepted` with channel correction -> `rejected` with channel correction | Q6.3: verify the correction is applied, the decision remains unchanged, and no revised-assessment label is emitted |
