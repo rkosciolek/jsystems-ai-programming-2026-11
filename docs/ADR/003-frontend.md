@@ -53,6 +53,7 @@ Transitions:
 | form | submit (valid) | progress |
 | progress | `result` | chat |
 | progress | `error` or network failure or client timeout (95 s) | form (with `draft` kept and `serviceError` set) |
+| progress | `ValidationError` (HTTP 400, 413 or 415 before the stream starts) | form (with `draft` kept; `fieldErrors` applied with `setError`, focus on the first invalid field; no service banner) |
 | chat | New case confirmed | form (empty; thumbnail object URL revoked) |
 
 The draft, including the `File`, stays in memory, so a retry needs no re-entry (AC-45). Nothing goes to `localStorage`: refreshing gives an empty form (AC-42).
@@ -83,7 +84,7 @@ A header is rendered in all states. It shows a **text wordmark** "Hardware Servi
 - **On invalid submit:** all errors shown, focus moved to the first invalid field (react-hook-form `shouldFocusError`), plus the summary "Popraw zaznaczone pola." (AC-15).
 - **On valid submit:** the reducer moves to `progress` synchronously, before the request is sent (AC-16 within 1 s).
 - **Service error banner** (`Alert`) at the top, with the PRD text and a "Spróbuj ponownie" button that resubmits the kept draft.
-- **Server-side `400` field errors** are mapped back onto the fields with `setError`.
+- **Server-side `400`, `413` and `415` field errors** (`fields` map, ADR-002 §4) are mapped back onto the fields with `setError` when the reducer returns to `form`.
 
 ### 3.3 Progress screen (`components/progress/`)
 - `submitCase(draft, signal)` posts `FormData` with `fetch`. It reads `response.body` through a `TextDecoderStream` and splits on newlines. Each line is parsed and validated with the shared Zod event schema and dispatched to the reducer.
@@ -122,31 +123,33 @@ A header is rendered in all states. It shows a **text wordmark** "Hardware Servi
   - When `status === 'error'`, an inline error is shown under the last user message ("Nie udało się wysłać odpowiedzi.") with "Ponów", which calls `regenerate()`. The user message is not re-added (AC-46).
   - On HTTP 404 (PRD AC-52), the text is "Sprawa wygasła. Rozpocznij nową sprawę." with the New case action, and the input is disabled.
     - Detection: pass a `fetch` wrapper to `DefaultChatTransport`. The wrapper calls the real `fetch` and, on status 404 with body `case_not_found`, sets a `caseExpired` flag in component state before returning the response. The UI branches on that flag, not on parsing `error.message`.
-    - **Verify** that the transport's `fetch` option exists in `/vercel/ai/ai_7.0.0` before implementing. If it does not, use `prepareSendMessagesRequest` plus a pre-flight `HEAD /api/chat?caseId=` and record the choice here.
+    - **Verify** that the transport's `fetch` option exists in `/vercel/ai/ai_7.0.0` before implementing. If it does not, the fallback is: when `useChat` reports an error, the UI checks whether `error.message` contains the server's `case_not_found` code (the route's 404 body), and records the choice here. No extra endpoint is added.
 - **New case:** an `AlertDialog` with the PRD text (Flow 4.6). On confirm, the reducer resets to `form`.
 - **Leave-page protection:** a `beforeunload` listener is registered only while the state is `chat` (AC-43).
 
 ### 3.5 Styling and brand
 - **Tokens:** `assets/design-tokens.json` is mapped to the shadcn CSS variables in `globals.css`:
-  - `--primary` ← navy `#003963`
-  - `--ring` and `--accent` ← `#0096E0`
+  - `--primary` ← navy `#003963` (text and icon color of CTAs; contrast 11.9:1 on white)
+  - `--ring` and `--accent` ← `#0096E0` (borders and focus rings only, **never text**: 3.3:1)
   - `--border` ← `#85D2F1`
-  - `--destructive` ← magenta `#CC1D56`
-  - `--muted` ← `#E9F4FD`
-  - text colors from `text.*`
+  - `--destructive` ← magenta `#CC1D56` (5.4:1; allowed for error text)
+  - `--muted` ← `#E9F4FD` (backgrounds)
+  - `--muted-foreground` ← slate `#515D6A` (6.7:1). The token `#788CAA` (3.4:1) is never used for text.
+  - other text colors from `text.*`
 
   Radii and spacing also follow `docs/design-guidelines.md`. Light theme only.
-- **Font:** `next/font/google` `Noto_Sans` with subsets `latin` and `latin-ext` (needed for Polish ą, ę, ł, ś, ż), weights 400/500/700. The files in `assets/fonts/` are a Latin-only subset, and the design guidelines raise a license question about them, so they are not used.
-- **Decision badge colors:**
+- **Buttons:** design-guidelines → Components says "the reference has no filled buttons; keep CTAs outlined". So the shadcn `Button` default variant is restyled as an **outlined pill**: white fill, 1 px `#0096E0` border, navy bold text, radius 22 px. Filled navy is not used for buttons.
+- **Font:** `next/font/google` `Noto_Sans` with subsets `latin` and `latin-ext`, weights 400/500/700. The files in `assets/fonts/` do include Polish diacritics (design-guidelines → Typography). They are not used only because the guidelines' rights notice says to confirm the license before redistributing them, and Google Fonts serves the same family under OFL 1.1.
+- **Decision badge:** outlined badge with **navy text** (≥ 11.9:1) on white. The decision is signalled by the icon, the label, and a colored border and icon:
 
-  | Decision | Color |
+  | Decision | Border and icon color |
   |---|---|
-  | accepted | success `#208A20` |
-  | rejected | magenta |
-  | needs_info | accent blue |
-  | escalated | navy outline |
+  | accepted | `#208A20` |
+  | rejected | `#CC1D56` |
+  | needs_info | `#0096E0` |
+  | escalated | `#003963` |
 
-  Icon and label are always present.
+  Border and icon colors are decorative (WCAG 1.4.11 needs 3:1 for UI components; all four meet it). The label text is always navy, so axe contrast checks pass whatever decision the real model returns (TAC-003-02).
 - **Responsive:** 360–1920 px with no horizontal scroll (AC-49). The form max width is about 720 px and the chat column about 840 px.
 - **Language:** all strings are Polish and live in `src/lib/i18n/pl.ts` (one module, no i18n framework), so tests and UI share them (AC-48).
 

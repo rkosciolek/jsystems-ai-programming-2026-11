@@ -128,7 +128,7 @@ Hardware Service Decision Copilot is a proof of concept (PoC) of a self-service 
 - **AC-17** Before analysis, the system reduces any image whose longer edge exceeds 2048 px to a longer edge of at most 2048 px, preserving the aspect ratio. The original file is not shown to the analysis model.
 - **AC-18** For case type "Reklamacja", the analysis uses the complaint analysis instructions; for "Zwrot", it uses the return analysis instructions. A case never uses both.
 - **AC-19** The image analysis result always states: whether the image is usable, whether it shows equipment matching the selected category, the visible condition, and (for complaints) the probable cause of damage or (for returns) visible signs of use and resale suitability.
-- **AC-20** When the image is unusable or does not match the declared category, the agent's decision is "Wymaga uzupełnienia" and the first message names the specific problem (e.g. blurry, wrong device, damage area not visible).
+- **AC-20** When the image is unusable or does not match the declared category, the agent's decision is "Wymaga uzupełnienia" and the first message names the specific problem (e.g. blurry, wrong device, damage area not visible). Exception: a case already outside the policy period (AC-26, AC-27) or meeting an escalation criterion (§11.3) is decided by those criteria, and no better photo is requested.
 
 ### AI decision (first message)
 - **AC-21** For case type "Reklamacja", the decision is based on the complaint policy document only; for "Zwrot", on the return policy document only.
@@ -312,7 +312,7 @@ flowchart TD
 
 ### 11.1 Roles
 The system uses up to three AI steps:
-0. **Classifier** — a typed decision model that answers fixed questions about the photo and the form (image usable, device category, damage and cause or condition, escalation signals) with a probability for each answer. When every required answer reaches the confidence threshold, the preliminary assessment is produced from fixed policy rules and a predefined message template, and steps 1–2 are skipped for the first message. Otherwise steps 1–2 run. The first message must satisfy the same acceptance criteria on both paths. Details: `docs/ADR/001-ai-decision-pipeline.md`.
+0. **Classifier** — a decision model that answers fixed questions about the photo and the form (image usable, device category, damage and its cause or the item's condition, whether the description matches the photo, escalation signals) and reports how certain each answer is. When the answers needed for a clear policy rule are certain enough, the preliminary assessment comes from fixed policy rules and a predefined message, and steps 1–2 are skipped for the first message. Otherwise steps 1–2 run. The first message must satisfy the same acceptance criteria on both paths. The customer cannot tell which path was used.
 1. **Image analyst** — a multimodal model that describes the photo. It does not make the decision. It uses one of two instruction sets depending on case type (11.2).
 2. **Decision agent** — a reasoning model that receives the form data, the image analysis and the relevant policy document, produces the first message with the preliminary assessment, and then conducts the chat. It uses one of two instruction sets depending on case type. The chat is always conducted by this agent.
 

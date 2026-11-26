@@ -48,4 +48,9 @@
 
 ## §7. Przekazanie do specjalisty
 
-Sprawa jest przekazywana do specjalisty, gdy stanu towaru nie da się ocenić na podstawie zdjęcia, gdy klient kwestionuje ocenę, przedstawiając nowe okoliczności, lub gdy wyraźnie prosi o kontakt z pracownikiem.
+Sprawa jest przekazywana do specjalisty, gdy:
+1. stanu towaru nie da się ocenić na podstawie zdjęcia;
+2. klient kwestionuje ocenę, przedstawiając nowe okoliczności;
+3. klient wyraźnie prosi o kontakt z pracownikiem;
+4. klient zapowiada kroki prawne (np. pozew, skargę do rzecznika konsumentów lub UOKiK);
+5. występuje zagrożenie bezpieczeństwa (spuchnięta bateria, dym, iskrzenie, przegrzewanie) — klient powinien natychmiast przestać używać urządzenia.

@@ -53,14 +53,17 @@ Not covered here:
 ## 3. Component Design
 
 ### 3.1 Pipeline orchestration (`/api/cases`, ADR-002)
+The signatures here are the same as in §5, which is authoritative.
+
+0. `caseId` is generated (ADR-002 §3.1 step 0). `facts = rules.computeFacts(input, config.today)`.
 1. `images.process` returns a JPEG buffer.
-2. `classifier.classify(input, jpeg)` returns a `ClassifierResult`.
-3. `rules.evaluate(input, classifier, today, config)` returns `{ route: 'fast' | 'llm', outcome?, reasons }`.
-4. Fast route: `templates.renderFirstMessage(input, outcome, caseId)`.
+2. `classifier.classify(input, jpeg, signal)` returns a `ClassifierResult`, or throws `ClassifierError` (see "Errors" in §3.2 for timeout handling).
+3. `rules.evaluate(input, classifier | null, facts, config)` returns `{ route, outcome?, shadowOutcome?, reasons[], minGatingCertainty, gateFailedAt? }`.
+4. Fast route: `templates.renderFirstMessage(input, outcome, classifier, caseId, facts)`.
 5. LLM route:
-   - `llm.analyzeImage(input, jpeg, classifier)` returns `ImageAnalysis`.
-   - `llm.decide(input, analysis, classifier, policy, caseId)` returns a `DecisionOutcome`.
-6. `llm.finalizeFirstMessage(outcome)` validates the outcome and appends the disclaimer. The fast route reaches the same finalizer.
+   - `llm.analyzeImage(input, jpeg, classifier, signal)` returns `ImageAnalysis`.
+   - `llm.decide(input, facts, analysis, classifier, policy, caseId, signal)` returns a `DecisionOutcome`.
+6. `llm.finalizeFirstMessage(outcome)` validates the outcome (decision enum, every `citedSections` element matches the regex in §3.6, 6 headings) and appends the disclaimer. The fast route reaches the same finalizer.
 
 In `llm-only` mode, step 3 still computes the fast path outcome as `shadowFastPathDecision`, for logging only. The route is forced to `llm`.
 
@@ -98,15 +101,24 @@ The returned `confidence` field is kept in `raw` and logged, but it is not used 
 
 **Category match.** The `device_category` value is compared with the form category. `Inne` always routes to the LLM path.
 
-**Errors.** Errors are mapped to `ClassifierError` (`upstream`, `invalid_response`, `timeout`). The response is validated with a Zod schema derived from the captured real response. On any `ClassifierError`, the pipeline does not fail: it routes to the LLM path with `classifier = null` and logs `classifierError`. The LLM path is then the fallback.
+**Errors.** Errors are mapped to `ClassifierError` (`upstream`, `invalid_response`, `timeout`). The response is validated with a Zod schema derived from the captured real response. On a `ClassifierError`, the orchestrator **first checks the pipeline signal**:
+- **Pipeline signal already aborted:**
+  - The total timeout fired → case error with `failureCode=timeout`.
+  - The client disconnected → `case_aborted`.
+  - In both cases there is **no** fallback.
+- **Otherwise** (Jev's own failure: HTTP error, invalid response, network error): the pipeline does not fail. It routes to the LLM path with `classifier = null` and logs `classifierError`.
+
+The Jev client has no timeout of its own; only the pipeline signal can abort it.
 
 ### 3.3 Confidence gate and fast path rules (`server/rules`)
 
 **Computed in code** (with `today` injected for testability, date in `Europe/Warsaw`):
-- `ageDays` = calendar days between `purchaseDate` and today.
-- `ageMonths` = whole calendar months.
-- Boundaries are **inclusive**: day 14 is within 14 days; 24 months 0 days is within 24 months.
-- `nearDeadline` = within 3 days of any applicable boundary (PRD §8: mention the "purchase date = delivery date" assumption).
+- `ageDays` = calendar days between `purchaseDate` and today (same day = 0).
+- `liabilityEnd = addCalendarMonths(purchaseDate, 24)`, clamped to the last day of the target month (e.g. 2024-02-29 + 24 months = 2026-02-28).
+- `liabilityExpired = today > liabilityEnd`. Whole-month counting is **not** used: a purchase 24 months + 20 days ago is expired.
+- `withdrawalOpen = ageDays ≤ 14` and `voluntaryOpen = ageDays ≤ 30`. Boundaries are inclusive: day 14 is within, day 15 is not.
+- `nearDeadline` = an applicable deadline (`liabilityEnd`, day 14 or day 30) that is still open and ends within 3 days of today. PRD §8 asks to mention the "purchase date = delivery date" assumption in that case.
+- These facts are the **only** date inputs to rules, templates, prompts and `checkLlmOutcome`. No other module computes dates.
 
 **Always-LLM cases.** These go to the LLM path regardless of certainty (`reasons` logged):
 - `DECISION_MODE = llm-only`
@@ -140,35 +152,45 @@ Because rows are ordered, reaching row *k* means that every earlier row was eval
 
 | # | Req. | Condition | Decision | Cited | Reason code |
 |---|---|---|---|---|---|
-| C1 | `image_usable` | `image_usable` false | needs_info | §6 ust. 1 | `photo_unusable` |
-| C2 | `device_category` | category mismatch (incl. `not_electronics`) | needs_info | §6 ust. 1 | `category_mismatch` |
-| C3 | `escalation_signal` | `escalation_signal` true | escalated | §1 ust. 3 / §7 | `escalation_signal` |
-| C3b | `description_matches_photo` | `description_matches_photo` false | → LLM path (`fast-only`: needs_info) | §6 ust. 1 | `description_photo_mismatch` |
-| C4 | — (date only) | `ageMonths` > 24 | rejected | §2 ust. 1, §2 ust. 4 | `liability_expired` |
-| C5 | `damage_cause` | `damage_cause` ∈ {impact, liquid, heat, tampering} | rejected | §4 | `user_caused_damage` |
-| C6 | `damage_cause` | `damage_cause` ∈ {manufacturing_defect, normal_wear} | accepted | §2, §3 ust. 1 or ust. 3, §5 | `defect_within_period` |
-| C7 | `damage_cause`, `visible_damage` | `damage_cause` = none_visible and `visible_damage` false | accepted (for service inspection) | §3 ust. 2, §5 | `invisible_defect_inspection` |
-| C8 | — | anything else | → LLM path (`fast-only`: escalated) | §7 | `no_rule_matched` |
+The *Cited* column lists the exact `citedSections` array elements. Each element matches the regex in §3.6.
 
-C3 is above C4 because the PRD AC-26 exception (escalation criteria win over the 24-month rejection) depends on that order.
+| # | Req. | Condition | Decision | Cited | Reason code |
+|---|---|---|---|---|---|
+| C3 | `escalation_signal` | `escalation_signal` true | escalated | `§1 ust. 3`, `§7` | `escalation_signal` |
+| C4 | — (date only) | `liabilityExpired` | rejected | `§2 ust. 1`, `§2 ust. 4` | `liability_expired` |
+| C1 | `image_usable` | `image_usable` false | needs_info | `§6 ust. 1` | `photo_unusable` |
+| C2 | `device_category` | category mismatch (incl. `not_electronics`) | needs_info | `§6 ust. 1` | `category_mismatch` |
+| C3b | `description_matches_photo` | `description_matches_photo` false | → LLM path (`fast-only`: needs_info) | `§6 ust. 1` | `description_photo_mismatch` |
+| C5 | `damage_cause` | `damage_cause` ∈ {impact, liquid, heat, tampering} | rejected | impact → `§4 ust. 1`; liquid or heat → `§4 ust. 2`; tampering → `§4 ust. 3` | `user_caused_damage` |
+| C6 | `damage_cause` | `damage_cause` = manufacturing_defect | accepted | `§2 ust. 1`, `§3 ust. 1`, `§5 ust. 1` | `defect_within_period` |
+| C7 | `damage_cause`, `visible_damage` | `damage_cause` = none_visible and `visible_damage` false | accepted (for service inspection) | `§3 ust. 2`, `§5 ust. 1` | `invisible_defect_inspection` |
+| C8 | — | anything else, **incl. `normal_wear`** (policy §3 ust. 3 vs §4 ust. 4 needs judgement on lifetime and cosmetic vs functional) | → LLM path (`fast-only`: escalated) | `§7` | `no_rule_matched` |
+
+**Row order** (first match wins): **C3, C4, C1, C2, C3b, C5, C6, C7, C8**.
+- C3 comes first because escalation criteria win over everything (PRD AC-26 exception, §11.3).
+- C4 comes second because an expired complaint is rejected regardless of the photo (PRD AC-26). Asking for a better photo of a case that will be rejected anyway would be wrong, and the LLM path would hit the same hard constraint.
 
 **Decision table: return**, evaluated top to bottom, first match wins:
 
 | # | Req. | Condition | Decision | Cited | Reason code |
 |---|---|---|---|---|---|
-| R1 | `image_usable` | `image_usable` false | needs_info | §6 ust. 1 | `photo_unusable` |
-| R2 | `device_category` | category mismatch | needs_info | §6 ust. 1 | `category_mismatch` |
-| R3 | `escalation_signal` | `escalation_signal` true | escalated | §7 | `escalation_signal` |
-| R3b | `description_matches_photo` (only when asked) | `description_matches_photo` false | → LLM path (`fast-only`: needs_info) | §6 ust. 1 | `description_photo_mismatch` |
-| R8 | — (date only) | `ageDays` > 30 | rejected | §2 ust. 1, §3 ust. 1 | `return_window_expired` |
-| R4 | `condition` | channel online, `ageDays` ≤ 14, `condition` ≤ 1 | accepted | §2 ust. 1 | `withdrawal_full` |
-| R5 | `condition` | channel online, `ageDays` ≤ 14, `condition` ≥ 2 | accepted, with a diminished-value note | §2 ust. 1, §2 ust. 4 | `withdrawal_with_deduction` |
-| R6 | `condition` | `ageDays` ≤ 30, `condition` ≤ 1 | accepted | §3 ust. 1 | `voluntary_return` |
-| R7 | `condition` | `ageDays` ≤ 30, `condition` ≥ 2 | rejected | §3 ust. 1–2 | `used_item_voluntary` |
+| # | Req. | Condition | Decision | Cited | Reason code |
+|---|---|---|---|---|---|
+| R3 | `escalation_signal` | `escalation_signal` true | escalated | `§7` | `escalation_signal` |
+| R8 | — (date only) | not `voluntaryOpen` (`ageDays` > 30) | rejected | `§2 ust. 1`, `§3 ust. 1` | `return_window_expired` |
+| R1 | `image_usable` | `image_usable` false | needs_info | `§6 ust. 1` | `photo_unusable` |
+| R2 | `device_category` | category mismatch | needs_info | `§6 ust. 1` | `category_mismatch` |
+| R3b | `description_matches_photo` (only when asked) | `description_matches_photo` false | → LLM path (`fast-only`: needs_info) | `§6 ust. 1` | `description_photo_mismatch` |
+| R4 | `condition` | channel online, `withdrawalOpen`, `condition` ≤ 1 | accepted | `§2 ust. 1` | `withdrawal_full` |
+| R5 | `condition` | channel online, `withdrawalOpen`, `condition` ≥ 2 | accepted, with a diminished-value note | `§2 ust. 1`, `§2 ust. 4` | `withdrawal_with_deduction` |
+| R6 | `condition` | `voluntaryOpen`, `condition` ≤ 1 | accepted | `§3 ust. 1` | `voluntary_return` |
+| R7 | `condition` | `voluntaryOpen`, `condition` ≥ 2 | rejected | `§3 ust. 1`, `§3 ust. 2` | `used_item_voluntary` |
 
-R8 sits above R4–R7 on purpose. A return past every window is rejected even when `condition` is uncertain. Every return case matches one of the rows, so there is no no-match row.
+**Row order** (first match wins): **R3, R8, R1, R2, R3b, R4, R5, R6, R7**.
+- R8 comes second: a return past every window is rejected regardless of the photo (PRD AC-27).
+- Every return case matches one of the rows, so there is no no-match row.
 
-R5 applies even when `condition` = 4 (damaged). The template adds that a defect can also be reported as a complaint (policy §1 ust. 2). Rule outputs are deterministic: unit tests enumerate every row and every boundary.
+**Damaged items (`condition` = 4).** For R5 and R7, the template adds that a defect can be reported as a complaint instead (return policy §1 ust. 2 and the §5 table). Rule outputs are deterministic: unit tests enumerate every row and every boundary.
 
 ### 3.4 Fast path templates (`server/templates`)
 - One Polish Markdown template per reason code, plus shared blocks.
@@ -191,7 +213,7 @@ R5 applies even when `condition` = 4 (damaged). The template adds that a defect 
 - **System prompt:** `prompts/decision-complaint.md` or `prompts/decision-return.md`, plus the policy document text inside `<policy>` tags. The complaint prompt receives only the complaint policy, and the return prompt only the return policy (AC-21).
 - **User content:**
   - the form data as JSON;
-  - precomputed facts (`ageDays`, `ageMonths`, deadline flags, `nearDeadline`, so the model does not do date math);
+  - the precomputed `DateFacts` (§4), so the model does not do date math;
   - the `ImageAnalysis`;
   - the Jev answers with their certainty;
   - the case number.
@@ -204,11 +226,12 @@ R5 applies even when `condition` = 4 (damaged). The template adds that a defect 
   | `reasonCodes` | strings |
   | `messageMarkdown` | Polish; must contain the 6 section headings |
 
-- **Hard constraints.** The rules from PRD AC-26…AC-29 are stated in the prompt **and** enforced after the call by `rules.checkLlmOutcome`:
-  - complaint older than 24 months → `rejected`, or `escalated` if `escalation_signal` is true;
-  - in-store return older than 30 days → `rejected`;
-  - online return ≤ 14 days → never `rejected`;
-  - user-caused damage → never `accepted`.
+- **Hard constraints.** The rules from PRD AC-26…AC-29 are stated in the prompt **and** enforced after the call by `rules.checkLlmOutcome(input, facts, classifier, outcome)`:
+  - **`escalated` is always allowed.** A human review never violates a constraint; this matters for PRD Flow 4.5 and policy §7.
+  - complaint with `liabilityExpired` → `rejected` or `escalated`;
+  - return with `ageDays` > 30 (any channel) → `rejected` or `escalated`;
+  - online return with `withdrawalOpen` → not `rejected`, **unless** `citedSections` contains `§4 ust. 1`, `§4 ust. 2` or `§4 ust. 3` of the return policy (statutory exclusions such as the hygiene seal);
+  - complaint whose `ImageAnalysis.damage.probableCause` (or, without analysis, Jev `damage_cause` with certainty ≥ threshold) is impact, liquid, heat or tampering → not `accepted`.
 
   If the check fails, or the output misses headings or citations, the call is retried once with the violation listed. If it fails again, the case gets decision `escalated` with the fixed template `llm_inconsistent`, and the event is logged.
 - **Finalizer:** strips any disclaimer the model wrote itself and appends the canonical disclaimer.
@@ -222,15 +245,23 @@ R5 applies even when `condition` = 4 (damaged). The template adds that a defect 
   - the current decision and the revision history.
 - **Messages:** `await convertToModelMessages(messages)` from the client history. Before conversion, the message at **index 0** must be the assistant message with `id === record.firstMessage.id`; it is replaced by the stored `firstMessage`. If index 0 is not that message, the request gets `400`.
 - **Tool `revise_decision`:**
-  - **Input:** `newDecision` (enum) and `reason` (Polish, at most 300 characters).
-  - **Execution:** if `newDecision` equals the current decision, the tool returns `{applied: false}` and nothing changes. Otherwise it updates `CaseRecord.currentDecision`, appends a revision, logs `decision_revised`, and returns `{applied: true, previous}`.
+  - **Input:**
+    - `newDecision` (enum);
+    - `reason` (Polish, at most 300 characters);
+    - optional `corrections: { purchaseDate?: ISO date ≤ today, channel?: 'online' | 'store' }`. The customer can correct these facts in the chat (PRD Flow 4.4 example; PRD §7 "corrections are given in the chat"). Other form fields cannot be corrected; a new photo needs a new case.
+  - **Execution:**
+    1. Apply `corrections` to a copy of the input and recompute `facts`.
+    2. Run `checkLlmOutcome` on the corrected input and facts with `newDecision`.
+    3. Reject when the check fails, or when `newDecision` equals the current decision and there are no corrections. The tool returns `{applied: false, violation?}`, nothing changes, and `revision_rejected` is logged.
+    4. Otherwise store the corrected input and facts, update `CaseRecord.currentDecision`, append a revision `{from, to, reason, corrections, at}`, log `decision_revised`, and return `{applied: true, previous}`.
+  - **Asking for a human:** an explicit request for a human is a new fact. `revise_decision(escalated)` always passes the check (§3.6).
   - **Rules in the prompt:** call the tool only when the customer states a **new fact** that changes the outcome under the policy; never because the customer insists (AC-37).
   - **Ordering (tool first):** the prompt requires the tool call **before any text** in the turn. If the model writes text first and the tool then returns `applied: false`, the text would claim a revision that never happened.
     - When the tool result is `applied: true`, the following text must start with "**Zmieniona ocena**" and state the previous and the new decision, the reason and the next steps (AC-36).
     - When it is `applied: false`, the text explains why the decision stays.
     - Enforcement: `stopWhen` allows 2 steps. Unit tests cover the stream assembly.
     - Server guard: if text deltas arrive before the tool call in the same turn, the server does not emit `data-decision` for that turn, logs `revision_order_violation`, and leaves the badge unchanged. The text may then be inconsistent; manual QA watches for this (TD-104).
-  - **Limit:** at most 2 steps (tool call + text). Hard constraints (§3.6) are re-checked with the facts from the record. A revision that violates them returns `{applied: false, violation}` and the model must explain instead.
+  - **Limit:** at most 2 steps (tool call + text). A revision that violates the hard constraints, checked on the corrected facts, returns `{applied: false, violation}`, and the model must explain instead.
 - **Stream assembly:**
   - `createUIMessageStream` merges `toUIMessageStream({ stream: result.stream, sendReasoning: false, onError: masked Polish message })`.
   - When a revision is applied, the server writes a `data-decision` part `{decision, previous, reason}` and, after the model's text ends, a text part with the canonical disclaimer.
@@ -263,10 +294,13 @@ R5 applies even when `condition` = 4 (damaged). The template adds that a defect 
 | `notDeterminableFromPhoto` | string[] |
 
 ### DecisionOutcome
-`{ decision, citedSections: string[], reasonCodes: string[], path: 'fast'|'llm', messageMarkdown: string }`
+`{ decision, citedSections: string[] (≥ 1, each matching §3.6 regex), reasonCodes: string[], path: 'fast'|'llm', messageMarkdown: string }`
+
+### DateFacts
+`{ ageDays: number, liabilityEnd: ISO date, liabilityExpired: boolean, withdrawalOpen: boolean, voluntaryOpen: boolean, nearDeadline: null | 'liability' | 'withdrawal' | 'voluntary' }`
 
 ### Rules config
-`{ threshold: number, mode: 'auto'|'llm-only', today: Date, timezone: 'Europe/Warsaw' }`
+`{ threshold: number, mode: 'auto'|'llm-only'|'fast-only', today: Date (Europe/Warsaw local date) }`
 
 ---
 
@@ -275,7 +309,8 @@ R5 applies even when `condition` = 4 (damaged). The template adds that a defect 
 | Function | Input | Output | Errors |
 |---|---|---|---|
 | `classifier.classify` | `CaseInput`, JPEG buffer, `AbortSignal` | `ClassifierResult` | `ClassifierError` (caught by the orchestrator → LLM path) |
-| `rules.evaluate` | `CaseInput`, `ClassifierResult \| null`, config | `{ route, outcome?, shadowOutcome?, reasons[], minGatingCertainty }` | none (pure) |
+| `rules.computeFacts` | `CaseInput`, `today` | `DateFacts` | none (pure) |
+| `rules.evaluate` | `CaseInput`, `ClassifierResult \| null`, `DateFacts`, config | `{ route, outcome?, shadowOutcome?, reasons[], minGatingCertainty, gateFailedAt?, uncertainQuestions[] }` | none (pure) |
 | `rules.checkLlmOutcome` | `CaseInput`, facts, classifier, `DecisionOutcome` | `{ ok: true } \| { ok: false, violations[] }` | none |
 | `templates.renderFirstMessage` | `CaseInput`, `DecisionOutcome`, classifier, `caseId`, facts | Markdown string | none |
 | `llm.analyzeImage` | `CaseInput`, JPEG, classifier, signal | `ImageAnalysis` | `LlmError` (`upstream`, `timeout`, `invalid_output`) |
@@ -346,7 +381,7 @@ R5 applies even when `condition` = 4 (damaged). The template adds that a defect 
 **Status:** Accepted
 **Date:** 2026-11-25
 **Context:** The Jev endpoint is alpha.
-**Decision:** Any Jev error or schema mismatch routes to the LLM path. A failure of the LLM path itself is a case error (ADR-002).
+**Decision:** A Jev failure of its own (HTTP error, schema mismatch, network) routes to the LLM path. An abort of the pipeline signal (total timeout or client disconnect) is **never** treated as a Jev failure; it ends the case (§3.2). A failure of the LLM path itself is a case error (ADR-002). In `fast-only` mode, a Jev failure is a case error with `failureCode=upstream`.
 **Rejected alternatives:**
 - Failing the case on a Jev error: it would make the PoC depend on the alpha endpoint.
 
@@ -443,29 +478,31 @@ sequenceDiagram
 
 | Scenario | Type | Input | Expected output | Edge cases |
 |---|---|---|---|---|
-| Jev response mapping | Unit | Captured fixture (noul, choice, score) | Correct `value` / `certainty` per type | p = 0.5 → value true, certainty 0.5 |
+| Jev response mapping | Unit | Recorded Jev responses (complaint and return sets; noul, choice, score) | Correct `value` / `certainty` per type | p = 0.5 → value true, certainty 0.5 |
 | Jev request building | Unit | Complaint vs return input | Complaint questions ⊄ return questions; JPEG data URL; no purchase date in state | Empty description for a return |
-| Jev invalid response | Unit | Fixture with a missing `answers` field | `ClassifierError(invalid_response)` | Extra unknown fields are tolerated |
+| Jev invalid response | Unit | Recorded response with `answers` removed (declared in MUTATIONS.md) | `ClassifierError(invalid_response)` | Extra unknown fields are tolerated |
 | Row-level gate | Unit | C1 fires with `image_usable` 0.95 while `damage_cause` is 0.40; C5 with `damage_cause` 0.7999 | C1 → fast `needs_info`; C5 → LLM with `gateFailedAt=C5` | Boundary 0.80 passes; custom threshold from env |
 | `fast-only` mode | Unit | All certainties 0.30; C8 no-match; C3b mismatch; Jev error | Rows fire on values; `escalated/no_rule_matched`; `needs_info/description_photo_mismatch`; case error `upstream`. Zero LLM calls. | Always-LLM cases (Inne, injection) → `no_rule_matched` |
 | Escalation precedence (AC-26) | Unit | Complaint at 30 months with `escalation_signal` true | `escalated` (C3 before C4) | Same case with signal false → `rejected` |
 | Return R8 order | Unit | Return at 45 days with `condition` certainty 0.40 | `rejected/return_window_expired` on the fast path | Day 30 vs day 31 |
-| Complaint table | Unit | One case per row C1–C8 | Expected decision, citations, reason code | 24 months exactly; 24 months + 1 day |
-| Return table | Unit | One case per row R1–R8 | Expected decision | Day 14/15 online; day 30/31; in-store day 10 with condition 2 → rejected |
+| Complaint table | Unit | One case per row C1–C8 (incl. C3b), in the row order of §3.3 | Expected decision, exact citation array, reason code | `today = liabilityEnd` → not expired; `liabilityEnd + 1 day` → C4; 2024-02-29 + 24 months clamp; expired + blurry photo → C4 (not C1); `normal_wear` → LLM |
+| Return table | Unit | One case per row R1–R8 (incl. R3b), in the row order of §3.3 | Expected decision | Day 14/15 online; day 30/31; in-store day 10 with condition 2 → rejected; day 40 + blurry photo → R8 (not R1); R7 with condition 4 includes the complaint hint |
+| Timeout vs classifier fallback | Integration | Recorded Jev success replayed after a delay > `CASE_TIMEOUT_MS` | `error {code:'timeout'}`; **no** LLM request sent | Client disconnect → `case_aborted` |
+| Revision with corrections | Integration | Recorded chat-with-tool SSE, mutated (MUTATIONS.md) to `corrections.channel='online'` on a 10-day in-store return that was rejected | Applied; facts recomputed; badge → new decision | `escalated` on an expired case → applied; `accepted` on an expired complaint → `applied:false` |
 | Always-LLM list | Unit | Inne, earbuds return, injection | LLM route | — |
 | Templates | Unit | Each reason code | 6 headings in order, case number, no "Pan/Pani", cited § present, `nearDeadline` note when flagged | — |
 | Disclaimer | Unit | Model text with its own disclaimer variant | Exactly one canonical disclaimer at the end | — |
 | checkLlmOutcome | Unit | LLM says accepted for impact damage | Violation | — |
-| Decision LLM retry | Integration | `MockLanguageModelV4`: first output violates, second is valid | Second used; 2 calls | Both invalid → escalated `llm_inconsistent` |
+| Decision LLM retry | Integration | Replay `fetch`: first the recorded decision response mutated to violate a hard rule (MUTATIONS.md), then the unmodified recording | Second used; 2 requests sent | Both mutated → escalated `llm_inconsistent` |
 | Policy isolation | Unit | Complaint case | System prompt contains complaint policy text and **not** return policy text | — |
 | Chat system context | Unit | `CaseRecord` | Prompt includes date facts, decision and analysis; the first message comes from the store, not the client | — |
-| Revision tool | Integration | Mock model emits a tool call | Store updated, `data-decision` written, disclaimer appended, log line | Same decision → no-op |
+| Revision tool | Integration | Recorded chat-with-tool SSE replayed | Store updated, `data-decision` written, disclaimer appended, log line | Same decision → no-op |
 | Shadow mode | Integration | `DECISION_MODE=llm-only` | LLM path used; log has `shadowFastPathDecision` | — |
-| Real Jev capture | Manual (TD-04) | `laptop-1.png`, complaint questions | Fixture saved with metadata | — |
+| Recordings | `npm run capture` (plan T03a/T03b) | Every recording listed in ADR-000 §10 "Mock provenance rules" | Four files per recording, hashes match the current prompts and questions | Stale hash → the freshness test fails |
 
 ### Technical acceptance criteria
 - **TAC-001-01** Every row of both decision tables, and every date boundary in §3.3, has a unit test (row coverage 100%).
-- **TAC-001-02** Fast path cases make zero LLM calls (asserted with mock call counts) and finish the pipeline in under 10 s against the real Jev endpoint (measured in manual QA with `laptop-1.png`).
+- **TAC-001-02** Fast path cases make zero LLM calls (asserted in integration tests by the replay `fetch` receiving no Chat Completions request, and on the real stack by E1 and E2 logging no vision or decision model) and finish the pipeline in under 10 s against the real Jev endpoint (measured in manual QA with `laptop-1.png`).
 - **TAC-001-03** No LLM output reaches the client without passing `checkLlmOutcome` and the heading/citation validation.
 - **TAC-001-04** Prompt files exist for vision-complaint, vision-return, decision-complaint, decision-return and chat, and each contains the four Polish decision labels exactly as in PRD AC-22.
 - **TAC-001-05** A unit test asserts that the deadline constants in `rules` (14, 30 days; 24 months) also appear in the corresponding policy files.

@@ -79,7 +79,7 @@ Steps:
    - Only `text` parts are accepted in user messages. File parts → `400` (AC-38).
 2. **Look up the case.** `caseStore.get(caseId)`; missing or expired → `404 { error: 'case_not_found' }`. Each access refreshes the TTL.
 3. **Stream.** Call `llm.chatStream(record, messages, request.signal)` (ADR-001 §3.7) and return `createUIMessageStreamResponse({ stream, consumeSseStream: consumeStream })`, so that aborts are handled.
-4. **Errors.** `onError` returns the masked Polish text "Nie udało się wysłać odpowiedzi." (AC-46). The full error is written to the server log.
+4. **Errors.** `onError` returns the masked Polish text "Nie udało się wysłać odpowiedzi." (AC-46). The full error is written to stderr, and `chat_failed` is logged with `failureCode` and `step=chat`.
 
 ### 3.3 Image processing (`server/images`)
 - **Input:** a `File` from `formData`, converted to a Buffer.
@@ -97,7 +97,7 @@ Steps:
 
 ### 3.4 Case store (`server/case-store`)
 - A module-level singleton `Map<string, CaseRecord>`, stored on `globalThis` so it survives Next.js dev hot reload.
-- **TTL:** 2 h since last access. Expired records are swept lazily on each `get`/`set`.
+- **TTL:** `CASE_TTL_MS` since last access (default 2 h). Expired records are swept lazily on each `get`/`set`.
 - **Size cap:** 500 records; the oldest by `lastAccess` is evicted.
 - **Methods:** `create(record)`, `get(caseId)`, `update(caseId, fn)`, `size()`, `clear()` (tests only).
 - **Contents:** only text data. No image bytes; the thumbnail stays in the browser.
@@ -292,19 +292,21 @@ sequenceDiagram
 
 | Scenario | Type | Input | Expected output | Edge cases |
 |---|---|---|---|---|
-| Valid complaint submission | Integration | Multipart with `laptop-1.png`, mocked Jev fixture (fast path) | 200; events `upload`, `analysis`, `decision`, `result` in order; record in store; one log line | — |
+| Valid complaint submission | Integration | Multipart with `laptop-1.png`; the Jev exchange replayed from the recording (ADR-000 §10 "Mock provenance rules") | 200; events `upload`, `analysis`, `decision`, `result` in order; record in store; one log line | — |
 | Field validation | Integration | Missing `model`; 19-char complaint description; future date | 400 with the exact Polish messages | Return with an empty description → valid |
-| Oversize | Integration | Generated non-photo payload of 10 MB + 1 byte (rejection-only exception from `assets/example-images/README.md`) | 413, before `formData()` is read | — |
+| Oversize: file check | Integration | Generated non-photo payload of 10 MB + 1 byte (owner-approved exception, rejection tests only; ADR-000 TAC-08) | 413 from the **file-size check** (body is below the preflight limit, so `formData()` is read) | — |
+| Oversize: preflight | Integration | Request with `Content-Length` above 10 MB + 64 KB | 413 from the **preflight**; `formData()` is never called (TAC-002-05) | — |
 | Wrong format | Integration | Generated non-image payload (plain text) named `fake.png` | 415 | — |
 | Extension mismatch | Integration | Real `laptop-1.png` (JPEG content, `.png` name) | Accepted and processed as JPEG | — |
 | Resize | Unit | **Real photos only:** `laptop-1.png` (3024 × 3135), `laptop-2.webp` (863 × 843), `phone-2.jpeg` (387 × 516) | Longer edge 2048 for `laptop-1`; small photos not upscaled; all outputs JPEG; output metadata has no EXIF block | If a real photo carries an EXIF orientation tag, assert that the output is upright; otherwise there is no rotation test (no generated images) |
-| Timeout | Integration | Jev mock never resolves; `CASE_TIMEOUT_MS=200` | `error {code:'timeout'}` within 1 s | — |
-| Upstream error | Integration | Jev 500, then vision mock throws | `error {code:'upstream'}`; error text has no provider or model name | — |
+| Timeout | Integration | Recorded Jev success replayed after 500 ms; `CASE_TIMEOUT_MS=200` | `error {code:'timeout'}` within 1 s | — |
+| Upstream error | Integration | Recorded real Jev 4xx → LLM path; then the recorded real Chat Completions 4xx for the vision call | `error {code:'upstream'}`; error text has no provider or model name | Recorded 401; network `TypeError` |
 | Case ID | Unit | Fixed clock 2026-11-25 | Matches `^HSD-20261125-[A-Z0-9]{4}$` | Collision retry |
 | Store TTL/cap | Unit | Fake timers; 501 inserts | Expired → undefined; oldest evicted | Access refreshes TTL |
 | Chat 404 | Integration | Unknown caseId | 404 `case_not_found` | — |
 | Chat input limits | Integration | 2001-char message; file part; 61 messages | 400 | Whitespace-only → 400 |
-| Chat stream | Integration | `MockLanguageModelV4` with text chunks | SSE stream contains text parts and `metadata.decision` | Mock throws → masked Polish error |
+| Chat stream | Integration | Recorded chat SSE replayed through the real provider | The UI message stream contains text parts and `metadata.decision` | Recorded real 4xx → masked Polish error |
+| Store TTL from env | Unit | `CASE_TTL_MS=1000`, fake timers | Record gone after 1 s idle | Invalid value 500 → env error |
 | Log privacy | Integration | Description with a sentinel `ZZ-SENTINEL-ZZ` | Sentinel absent from the log file | — |
 | Env | Unit | Missing `OPENROUTER_API_KEY` | Error names the variable, not its value | Invalid threshold 1.5 |
 
@@ -312,5 +314,5 @@ sequenceDiagram
 - **TAC-002-01** `/api/cases` emits progress events strictly in the order `upload` → `analysis` → `decision`, followed by exactly one terminal event.
 - **TAC-002-02** No response body or stream event contains a stack trace, model ID, provider name or the substring `openrouter` (integration assertions on every error path).
 - **TAC-002-03** Processed images have a longer edge ≤ 2048 px, are JPEG, and contain no EXIF block.
-- **TAC-002-04** Through `npm start`, the largest real photo (`laptop-1.png`, about 1.2 MB) is processed, and a 10 MB + 1 byte generated payload gets 413 (E2E E8). That a real photo close to 10 MB is accepted is **not verifiable** with the provided photos. It is checked only if the owner supplies such a photo; otherwise the QA report records it as not verified.
+- **TAC-002-04** Through `npm start`, the largest real photo (`laptop-1.png`, about 1.2 MB) is processed, and a 10 MB + 1 byte generated payload gets 413 (E2E E8). That a real photo close to 10 MB is accepted is **not verified**. The owner confirmed (2026-11-26) that the only test photos are those in `assets/example-images/`, and the largest is about 1.2 MB. The QA report records this limitation.
 - **TAC-002-05** Neither `request.formData()` nor sharp runs for requests whose `Content-Length` exceeds the preflight limit.

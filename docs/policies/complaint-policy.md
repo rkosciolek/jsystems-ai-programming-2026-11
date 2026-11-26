@@ -49,4 +49,5 @@ Sprawa jest przekazywana do specjalisty, gdy:
 2. klient powołuje się na gwarancję producenta;
 3. występuje zagrożenie bezpieczeństwa (spuchnięta bateria, dym, iskrzenie, przegrzewanie) — klient powinien natychmiast przestać używać urządzenia;
 4. klient kwestionuje ocenę, przedstawiając nowe okoliczności, których nie da się zweryfikować na podstawie zdjęcia;
-5. klient wyraźnie prosi o kontakt z pracownikiem.
+5. klient wyraźnie prosi o kontakt z pracownikiem;
+6. klient zapowiada kroki prawne (np. pozew, skargę do rzecznika konsumentów lub UOKiK).
