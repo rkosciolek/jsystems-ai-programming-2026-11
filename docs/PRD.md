@@ -136,7 +136,7 @@ Hardware Service Decision Copilot is a proof of concept (PoC) of a self-service 
 - **AC-23** The first chat message contains, in this order: greeting, case summary (case type, category, model, purchase date, purchase channel), decision, justification, image findings, next steps, disclaimer.
 - **AC-24** The justification names at least one policy section by its number from the policy document (e.g. "§3 ust. 2").
 - **AC-25** The disclaimer is present in every first message and every revised assessment, with the text: "To jest wstępna ocena przygotowana automatycznie. Ostateczną decyzję potwierdzi nasz zespół serwisowy w ciągu 14 dni od otrzymania zgłoszenia."
-- **AC-26** A complaint with a purchase date more than 24 months before today is assessed as "Wstępnie odrzucono" with a justification citing the 24-month liability period, unless the customer's description indicates a separate manufacturer's guarantee, in which case the decision is "Przekazano do specjalisty".
+- **AC-26** A complaint with a purchase date more than 24 months before today is assessed as "Wstępnie odrzucono" with a justification citing the 24-month liability period. Exception: if any escalation criterion from §11.3 applies (manufacturer's guarantee, legal action, safety risk, explicit request for a human), the decision is "Przekazano do specjalisty".
 - **AC-27** A return with purchase channel "Sklep stacjonarny" and a purchase date more than 30 days before today is assessed as "Wstępnie odrzucono".
 - **AC-28** A return with purchase channel "Sklep internetowy", a purchase date within 14 days before today and visible signs of use is not rejected; the message informs the customer about a possible deduction for diminished value.
 - **AC-29** A complaint where the image analysis identifies damage as most likely user-caused (impact, liquid, burn marks) is assessed as "Wstępnie odrzucono" or "Przekazano do specjalisty", never "Wstępnie zaakceptowano".
@@ -164,6 +164,7 @@ Hardware Service Decision Copilot is a proof of concept (PoC) of a self-service 
 - **AC-45** If the analysis or decision fails or exceeds 90 seconds, the form is shown again with all values and the photo preserved and the message "Nie udało się przeanalizować zgłoszenia. Spróbuj ponownie za chwilę."
 - **AC-46** If a chat reply fails, the customer's message remains visible with the error "Nie udało się wysłać odpowiedzi." and a **Ponów** action; retrying does not duplicate the customer's message.
 - **AC-47** No error message shown to the customer contains stack traces, model names, provider names or internal identifiers.
+- **AC-52** If the server no longer knows the case when a chat message is sent (e.g. after a server restart), the chat shows "Sprawa wygasła. Rozpocznij nową sprawę." with the **Nowa sprawa** action, and the message input is disabled.
 
 ### General
 - **AC-48** All UI text is in Polish.
@@ -310,9 +311,10 @@ flowchart TD
 ## 11. Agent / System Behavior Specification
 
 ### 11.1 Roles
-The system uses two AI steps:
+The system uses up to three AI steps:
+0. **Classifier** — a typed decision model that answers fixed questions about the photo and the form (image usable, device category, damage and cause or condition, escalation signals) with a probability for each answer. When every required answer reaches the confidence threshold, the preliminary assessment is produced from fixed policy rules and a predefined message template, and steps 1–2 are skipped for the first message. Otherwise steps 1–2 run. The first message must satisfy the same acceptance criteria on both paths. Details: `docs/ADR/001-ai-decision-pipeline.md`.
 1. **Image analyst** — a multimodal model that describes the photo. It does not make the decision. It uses one of two instruction sets depending on case type (11.2).
-2. **Decision agent** — a reasoning model that receives the form data, the image analysis and the relevant policy document, produces the first message with the preliminary assessment, and then conducts the chat. It uses one of two instruction sets depending on case type.
+2. **Decision agent** — a reasoning model that receives the form data, the image analysis and the relevant policy document, produces the first message with the preliminary assessment, and then conducts the chat. It uses one of two instruction sets depending on case type. The chat is always conducted by this agent.
 
 ### 11.2 Image analysis instructions
 **Complaint**: determine whether the image is usable; identify the device type and whether it matches the declared category and model; describe visible damage or defects (type, location, extent); assess the probable cause — manufacturing/material defect, normal wear, or external cause (impact, crack pattern from a drop, liquid traces, corrosion, burn marks, tampering); state the confidence of the assessment (high / medium / low) and what cannot be determined from a photo (e.g. internal faults, flickering, battery issues).
