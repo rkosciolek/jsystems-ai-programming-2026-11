@@ -57,7 +57,7 @@ The whole PRD. Every acceptance criterion AC-01…AC-52 and every flow in PRD §
 | `feat/design-system` | Equal to `origin/feat/design-system` (design system only, PR #2) |
 | `app/` | Only `README.md`: no `package.json`, no code, no tests |
 | Test photos | Only the 5 real photos in `assets/example-images/` (owner, 2026-11-26). `laptop-1.png` is JPEG content with a `.png` name (3024 × 3135, about 1.2 MB, the largest). There is no photo near 10 MB. |
-| `.gitignore` | Ignores `.env*` (except `.env.example`) and `.agent-briefs/` |
+| `.gitignore` | Ignores `.env*` (except `.env.example`) and the old `.agent-briefs/`; T00 adds `docs/.agents_brief/*.log.jsonl` |
 | Custom agent roles | None |
 
 **Commands verified:**
@@ -149,23 +149,60 @@ Known conflict to watch: the root `AGENTS.md` says integration tests mock "only 
 
 | Worker | Mechanism (verified available) | Used for |
 |---|---|---|
-| Haiku | Claude Code `Agent` tool, `subagent_type: general-purpose`, `model: haiku`, prompt "Execute `.agent-briefs/<task>.md`" | Small, well-specified modules and test specs |
+| Haiku | Claude Code `Agent` tool, `subagent_type: general-purpose`, `model: haiku`, prompt "Execute `docs/.agents_brief/<brief file>`" | Small, well-specified modules and test specs |
 | Luna | OpenCode headless, `openrouter/openai/gpt-6-luna` (§9) | Logic-heavy modules, UI, independent review |
+| OpenCode free models | OpenCode headless, `opencode/mimo-v2.6-flash-free` or `opencode/deepseek-v4.1-flash-free`. Both answered a smoke test on 2026-11-26 with no configuration. Run `opencode models` for today's list. | **Research and documentation lookups** delegated by any agent; second opinions; fallback worker if OpenRouter credit runs out |
 
-**Rules in every brief:**
-- Write the failing behavioral test first and record red output; implement the minimum; go green.
-- Edit only the listed files. No `npm install`, no git, no contract changes.
-- Upload tests use the **real photos from `assets/example-images/`** only; generated non-photo payloads are allowed only for 413/415.
-- Never write an OpenRouter or Jev response by hand; use the recordings, with mutations declared in `MUTATIONS.md`.
-- Report contradictions instead of resolving them, in `.agent-briefs/<task>.report.md`.
+### 4.1 Briefs: location and naming
 
-A worker never accepts its own work.
+Every brief is saved **in the repository** at `docs/.agents_brief/<plan_name>-<brief_name>.md` (owner decision, 2026-11-26; it replaces the earlier "keep local" decision).
+
+| Item | Value |
+|---|---|
+| `<plan_name>` | `poc-implementation-plan` (this file's name without `.md`) |
+| `<brief_name>` | Task ID plus a short kebab-case slug, e.g. `T06-rules` → `docs/.agents_brief/poc-implementation-plan-T06-rules.md` |
+| Worker report | Next to the brief: `docs/.agents_brief/poc-implementation-plan-T06-rules.report.md` |
+| Fix rounds | `…-T06-rules-r2.md` and so on |
+| Raw OpenCode JSON logs | `docs/.agents_brief/*.log.jsonl`, **gitignored** (T00 adds the rule) |
+| Commit | Brief and report go in the commit that accepts the task; the issue comment links them |
+
+**Every brief contains, in this order:**
+1. Task ID, issue number and the concurrent tasks.
+2. Goal and observable outcome.
+3. Links to the PRD, ADR and design sections, plus excerpts of the contracts, the relevant source and predecessor outputs. The worker should not have to rediscover the architecture.
+4. The exact editable files.
+5. The **tool guidance** (§4.2, copied verbatim).
+6. Ordered steps; test inputs and expected results; the names of the recordings to use.
+7. The report format.
+
+### 4.2 Tool guidance for every agent (copied into every brief)
+
+1. **Look up facts in this order:**
+   1. The tool's own help: `<tool> --help` or `<tool> <command> --help`. Examples: `npx create-next-app@16.4.6 --help`, `npx shadcn@latest --help`, `opencode run --help`, `gh issue --help`, `playwright-cli --help`, `ffmpeg -h`.
+   2. **Context7**, matched to the version in `app/package-lock.json`: MCP `resolve-library-id` → `query-docs`, or the CLI `npx ctx7@latest library <name> "<question>"` → `npx ctx7@latest docs <id> "<question>"`. Use the IDs already listed in the ADRs' "Technology Documentation References" tables directly (e.g. `/vercel/ai/ai_7.0.0`, `/vercel/next.js/v16.4.5`).
+   3. **Web search only last**, preferring official vendor pages (e.g. https://openrouter.ai/docs/llms.txt for OpenRouter).
+2. **Delegate research instead of doing it inline:**
+   - The orchestrator sends broad lookups to a Claude Code subagent (`Explore`, `general-purpose` or `web-fetch`).
+   - Workers, which cannot start subagents themselves, use a **CLI agent**: `opencode run -m opencode/deepseek-v4.1-flash-free --agent plan "<question>; answer with sources"`.
+   - The answer goes into the worker report with its source.
+3. **Package manager: npm.** pnpm is not installed, and the lockfile is `package-lock.json`. Workers never install packages; they ask the orchestrator in the report.
+4. **Available tools:**
+   - `node`/`npm`/`npx`;
+   - `gh` (orchestrator only for writes);
+   - `opencode`: free models work right after installation; `/connect` in interactive mode adds providers, and OpenRouter is already connected;
+   - `playwright-cli` (QA);
+   - `ffmpeg` (installed in T23 if missing);
+   - `git` (orchestrator only).
+5. **Rules:**
+   - Write the failing behavioral test first and record red output; implement the minimum; go green.
+   - Edit only the listed files. No `npm install`, no git, no contract changes.
+   - Upload tests use the **real photos from `assets/example-images/`** only; generated non-photo payloads are allowed only for 413/415.
+   - Never write an OpenRouter or Jev response by hand; use the recordings, with mutations declared in `MUTATIONS.md`.
+   - Report contradictions instead of resolving them.
+
+A worker never accepts its own work. The orchestrator records in §13 and on the issue: the brief and report paths, the worker, the session ID and the acceptance result.
 
 **Concurrency:** at most 3 workers at once, only on disjoint files. Each brief lists the concurrent tasks. One checkout; no worktree.
-
-**Briefs stay local** (owner decision, 2026-11-26):
-- `.agent-briefs/` remains gitignored. Briefs, reports and OpenCode logs are kept there for the whole execution and are not committed.
-- For traceability, the orchestrator records in §13, per task: the brief file name, the worker, the session ID and the acceptance result.
 
 **Commits:** one per accepted task or QA gate; named paths only; `Area: summary` plus the session attribution lines.
 
@@ -201,7 +238,7 @@ All app commands run in `app/`. Every implementation row runs: failing test → 
 
 | Task | Observable outcome | PRD/ADR links | Prerequisites | Owner/model | Editable files | Verification and handoff | Status |
 |---|---|---|---|---|---|---|---|
-| **P0 — T00** Docs and branch | Revision 3/4 document edits committed on `feat/prd-adr-plan`; `feat/poc-app` created from it | §3 | **Your authorization of T00** | Orchestrator | `docs/ADR/*.md`, `docs/PRD.md`, `docs/policies/*.md`, this plan | `git log -3`; `git status` shows only `.agents/`. Commit `Docs: review fixes, real-stack testing, phased plan` | todo |
+| **P0 — T00** Docs and branch | Revision 3/4 document edits committed on `feat/prd-adr-plan`; `feat/poc-app` created from it | §3 | **Your authorization of T00** | Orchestrator | `docs/ADR/*.md`, `docs/PRD.md`, `docs/policies/*.md`, this plan, `.gitignore` | `git log -3`; `git status` shows only `.agents/`. Commit `Docs: review fixes, real-stack testing, phased plan` | todo |
 | **P1 — T02** Scaffold | Next 16 app; lint, typecheck, empty test run, build, start and `/` work. All deps installed once (incl. `@axe-core/playwright`; Chromium, Firefox, WebKit attempt). shadcn components and AI Elements patterns added (names resolved). `app/AGENTS.md` (§3.4); `opencode.json` (syntax verified; `plan` agent read-only checked) | ADR-000 TD-02, §3; ADR-003 §2 | T00 | Orchestrator (lockfile and configs serialized) | `app/**` scaffold, `package*.json`, configs, `app/AGENTS.md`, `app/.env.example`, `.gitignore` (`app/var/`), `opencode.json` | `npx create-next-app@16.4.6 --help` first. Then `npm run lint`, `npm run typecheck`, `npm test` (`passWithNoTests`), `npm run build`, separately from `npm start` + `curl -sI :3000` → 200. Commit `App: scaffold Next.js 16, AI SDK 7, shadcn, Vitest, Playwright` | todo |
 | **P1 — T04** Contracts | Enums; Zod schemas (`CaseInput`, `CaseEvent`, `DecisionOutcome`, `DateFacts`, `ImageAnalysis` per ADR-001 §4, `revise_decision` input incl. `corrections`, `CaseUIMessage`, `DecisionLogEntry` per the ADR-000 §5 table); `pl.ts` with every PRD string; `server/env` incl. `fast-only` and `CASE_TTL_MS` | ADR-000 §5–§7; ADR-001 §4; ADR-002 §3.6, §4; ADR-003 §4 | T02 | Orchestrator writes; **Haiku** writes the tests first | `app/src/lib/domain/**`, `app/src/lib/i18n/pl.ts`, `app/src/server/env/**`, `app/tests/unit/domain/**` | Red → green; TAC-003-04. Commit `Shared: contracts, Polish strings, env` | todo |
 | **P1 — T11** Theme | Tokens → variables incl. `--muted-foreground` `#515D6A`; outlined-pill buttons; Noto Sans `latin-ext`; wordmark header | ADR-003 §3.1, §3.5; design-guidelines | T02 | **Haiku** | `app/src/app/globals.css`, `app/src/app/layout.tsx`, `app/src/components/app-header/**`, `app/src/components/ui/button.tsx`, `app/tests/unit/app-header.test.tsx` | Render test. Commit `Frontend: brand theme and header` | todo |
@@ -239,6 +276,47 @@ All app commands run in `app/`. Every implementation row runs: failing test → 
 3. Record that window's screen area with `ffmpeg -f x11grab` at 30 fps while `playwright-cli` drives the scripted flow, with short pauses so a viewer can read each screen.
 4. Encode H.264 (`libx264`, `yuv420p`, `-crf 28`, `+faststart`). Length ≤ 3 min, size ≤ 25 MB, so it can be committed and opened on GitHub.
 5. Check the result with `ffprobe` (duration, resolution, codec) and watch it in full before committing. The README lists the timestamps of each scene.
+
+### 5.1 Status tracking (GitHub issues)
+
+**Where to see progress:**
+- The **epic issue** shows a sub-issue progress bar (closed / total).
+- Every task and QA gate has its own sub-issue.
+
+**Label conventions:**
+- `phase:P0`…`phase:P6` groups issues by phase.
+- `task` or `qa-gate` marks the kind of issue.
+- Status labels show the current state:
+
+  | Label | Meaning |
+  |---|---|
+  | `status:ready` | All prerequisites closed; can start |
+  | `status:in-progress` | Brief dispatched or work running |
+  | `status:review` | Worker finished; the orchestrator is verifying |
+  | `status:blocked` | Waiting on you, on an external service or on a failed gate |
+
+  Closed = accepted and committed.
+
+**Useful commands:**
+
+| What | Command |
+|---|---|
+| Open issues by status | `gh issue list --label status:in-progress` (or `status:blocked`, `status:ready`) |
+| Epic progress | `gh issue view <epic number>` |
+| Issues of one phase | `gh issue list --label phase:P3 --state all` |
+
+**What the orchestrator posts on every status change**, as an issue comment:
+- the brief path;
+- the worker and session ID;
+- the commands run, with their counts;
+- the screenshot folder (for gates);
+- the accepting commit.
+
+The plan's `Status` column and §13 are updated in the same commit.
+
+| Plan ID | Issue |
+|---|---|
+| *(filled when the issues are created)* | |
 
 Besides the gates, AGENTS.md also requires manual QA after **every task that affects the running app**. For UI tasks (T11, T12, T15, T17), the orchestrator therefore also takes a quick `playwright-cli` look at the touched screen before accepting the task. The QA gate is the full check of the phase.
 
@@ -342,13 +420,22 @@ T19 fills the "Evidence" column from the per-server JSONL logs and DOM assertion
 
 ## 9. OpenCode headless — short instructions
 
-1. **Pre-checks** (verified 2026-11-26): `opencode --version` → 1.19.0; `opencode auth list` → OpenRouter; `opencode models openrouter | grep gpt-6-luna`.
+1. **Pre-checks** (verified 2026-11-26):
+   - `opencode --version` → 1.19.0;
+   - `opencode auth list` → OpenRouter;
+   - `opencode models` lists `openrouter/openai/gpt-6-luna` and free `opencode/*-free` models;
+   - smoke test passed for `opencode/mimo-v2.6-flash-free` and `opencode/deepseek-v4.1-flash-free`.
+
+   If OpenRouter were missing, run `opencode` interactively and use `/connect`. Check `opencode run --help` before relying on a flag.
 2. **Implementation task.** Run from the repo root, in the background through the Bash tool, one process per task. The message comes **before** `-f`:
 
-   `opencode run -m openrouter/openai/gpt-6-luna --agent build --title "T06 rules" --format json "Execute the attached brief exactly. Edit only the files it lists. Write your report to .agent-briefs/T06-rules.report.md." -f .agent-briefs/T06-rules.md > .agent-briefs/T06-rules.log.jsonl 2>&1`
+   `opencode run -m openrouter/openai/gpt-6-luna --agent build --title "T06 rules" --format json "Execute the attached brief exactly. Edit only the files it lists. Write your report to docs/.agents_brief/poc-implementation-plan-T06-rules.report.md." -f docs/.agents_brief/poc-implementation-plan-T06-rules.md > docs/.agents_brief/poc-implementation-plan-T06-rules.log.jsonl 2>&1`
 3. **Follow-up:** `opencode run -s <sessionID from the JSON log> -m openrouter/openai/gpt-6-luna "…"`.
-4. **Review (T21):** `--agent plan`, read-only (confirmed in T02; otherwise a minimal read-only `reviewer` agent in `opencode.json`).
-5. **Safety:** never pass `--auto`. `opencode.json` denies `git commit*`, `git push*` and `npm install*`. Acceptance comes from the orchestrator's own diff review and test runs.
+4. **Research for any agent** (read-only, free):
+
+   `opencode run -m opencode/deepseek-v4.1-flash-free --agent plan "<question>. Use the tool's --help and Context7 (npx ctx7@latest) before web search. Answer with sources."`
+5. **Review (T21):** `--agent plan`, read-only (confirmed in T02; otherwise a minimal read-only `reviewer` agent in `opencode.json`).
+6. **Safety:** never pass `--auto`. `opencode.json` denies `git commit*`, `git push*` and `npm install*`. Acceptance comes from the orchestrator's own diff review and test runs.
 
 ---
 
@@ -384,14 +471,15 @@ T19 fills the "Evidence" column from the per-server JSONL logs and DOM assertion
 | 2 | Date and escalation rows before photo rows; AC-20 exception | **Yes** |
 | 3 | `normal_wear` → LLM path | **Yes** |
 | 4 | "Legal action" in §7 of both policies | **Yes** |
-| 5 | Commit agent briefs? | **No, keep them local** (`.agent-briefs/` stays gitignored) |
+| 5 | Agent briefs | **Saved in the repo** at `docs/.agents_brief/<plan_name>-<brief_name>.md` and committed with the task; raw logs gitignored (§4.1). Changed by the owner on 2026-11-26. |
 | 6 | Root `AGENTS.md` / `CLAUDE.md` edits A1–A4, A7 | **Not now**; the rules go into `app/AGENTS.md` and the briefs (§3.4) |
 | 7 | E2E budget (about 15 Jev + 22 Luna calls per run) | **OK** |
 | 8 | Real photo near 10 MB | **Only `assets/example-images/`**, so near-limit acceptance is not verified (§7) |
 | 9 | Manual QA cadence | **A `playwright-cli` QA gate after every phase** (§5) |
 | 10 | Screenshots | **Committed in the repo** under `docs/plans/qa/` with a README per folder (§5) |
 | 11 | Final documentation | **Demo video recorded with ffmpeg**, committed and linked in the final PR (T23) |
-| 12 | Tracker | **GitHub epic + sub-issues** (issues enabled on request) |
+| 12 | Tracker | **GitHub epic + sub-issues** with status labels (§5.1) |
+| 13 | Tools | OpenCode free models for research; `--help` → Context7 → web search; npm (§4.2) |
 
 **Open:** none blocking. T00 needs your explicit go-ahead.
 
