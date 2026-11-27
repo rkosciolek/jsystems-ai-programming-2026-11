@@ -25,7 +25,7 @@ function setup(props: Partial<React.ComponentProps<typeof CaseForm>> = {}) {
 }
 
 async function chooseCategory(user: ReturnType<typeof userEvent.setup>, label = CATEGORIES[0].label) {
-  await user.click(screen.getByLabelText(pl.form.labels.category));
+  await user.click(screen.getByLabelText(pl.form.labels.category, { exact: false }));
   await user.click(await screen.findByRole("option", { name: label }));
 }
 
@@ -46,8 +46,8 @@ async function fillValidForm(
 ) {
   await chooseCaseType(user, type);
   await chooseCategory(user);
-  await user.type(screen.getByLabelText(pl.form.labels.model), "ThinkPad T14");
-  await user.type(screen.getByLabelText(pl.form.labels.purchaseDate), "2026-11-20");
+  await user.type(screen.getByLabelText(pl.form.labels.model, { exact: false }), "ThinkPad T14");
+  await user.type(screen.getByLabelText(pl.form.labels.purchaseDate, { exact: false }), "2026-11-20");
   await user.click(screen.getByRole("radio", { name: pl.form.channel.online }));
   if (description) {
     await user.type(
@@ -55,7 +55,8 @@ async function fillValidForm(
       description,
     );
   }
-  await user.upload(screen.getByLabelText(pl.form.labels.photo, { selector: "input" }), realPhoto());
+  await user.upload(screen.getByLabelText(pl.form.labels.photo, { selector: "input", exact: false }), realPhoto());
+  await user.click(screen.getByRole("checkbox", { name: pl.form.labels.aiConsent }));
 }
 
 beforeEach(() => {
@@ -77,22 +78,22 @@ afterEach(() => {
 });
 
 describe("CaseForm form structure and initial state", () => {
-  it("renders the seven fields in PRD order with no preselected choice", () => {
+  it("renders the eight fields in PRD order with no preselected choice", () => {
     const { container } = setup();
     const form = container.querySelector("form");
     expect(form).not.toBeNull();
     expect(Array.from(form!.querySelectorAll("[data-field]")).map((field) => field.getAttribute("data-field"))).toEqual([
-      "caseType", "category", "model", "purchaseDate", "channel", "description", "photo",
+      "caseType", "category", "model", "purchaseDate", "channel", "description", "photo", "aiConsent",
     ]);
     expect(screen.queryByRole("heading", { name: pl.form.title })).not.toBeInTheDocument();
     expect(screen.queryByText(pl.form.intro)).not.toBeInTheDocument();
-    expect(screen.getByText(pl.form.labels.caseType)).toBeInTheDocument();
-    expect(screen.getByRole("radiogroup", { name: pl.form.labels.caseType })).toBeInTheDocument();
+    expect(screen.getByText(pl.form.labels.caseType, { exact: false })).toBeInTheDocument();
+    expect(screen.getByRole("radiogroup", { name: new RegExp(pl.form.labels.caseType) })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: pl.form.caseType.complaint.label })).toHaveAttribute("aria-checked", "false");
     expect(screen.getByRole("radio", { name: pl.form.caseType.return.label })).toHaveAttribute("aria-checked", "false");
     expect(screen.getByRole("radio", { name: pl.form.channel.online })).toHaveAttribute("aria-checked", "false");
     expect(screen.getByRole("radio", { name: pl.form.channel.store })).toHaveAttribute("aria-checked", "false");
-    expect(screen.getByLabelText(pl.form.labels.category)).toHaveAttribute("data-placeholder");
+    expect(screen.getByLabelText(pl.form.labels.category, { exact: false })).toHaveAttribute("data-placeholder");
     expect(screen.getByText(pl.form.labels.categoryPlaceholder)).toBeInTheDocument();
   });
 
@@ -101,7 +102,7 @@ describe("CaseForm form structure and initial state", () => {
     setup();
     expect(screen.getByText(pl.form.caseType.complaint.subtitle)).toBeInTheDocument();
     expect(screen.getByText(pl.form.caseType.return.subtitle)).toBeInTheDocument();
-    await user.click(screen.getByLabelText(pl.form.labels.category));
+    await user.click(screen.getByLabelText(pl.form.labels.category, { exact: false }));
     for (const category of CATEGORIES) {
       expect(await screen.findByRole("option", { name: category.label })).toBeInTheDocument();
     }
@@ -111,8 +112,8 @@ describe("CaseForm form structure and initial state", () => {
     setup();
     expect(screen.getByRole("radio", { name: pl.form.channel.online })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: pl.form.channel.store })).toBeInTheDocument();
-    expect(screen.getByLabelText(pl.form.labels.purchaseDate)).toHaveAttribute("type", "date");
-    expect(screen.getByLabelText(pl.form.labels.purchaseDate)).toHaveAttribute("max", todayInWarsaw());
+    expect(screen.getByLabelText(pl.form.labels.purchaseDate, { exact: false })).toHaveAttribute("type", "date");
+    expect(screen.getByLabelText(pl.form.labels.purchaseDate, { exact: false })).toHaveAttribute("max", todayInWarsaw());
   });
 });
 
@@ -129,13 +130,14 @@ describe("CaseForm validation", () => {
     expect(screen.getByText(pl.errors.channelRequired, { selector: "p" })).toBeInTheDocument();
     expect(screen.getByText(pl.errors.description)).toBeInTheDocument();
     expect(screen.getByText(pl.errors.imageRequired)).toBeInTheDocument();
+    expect(screen.getByText(pl.errors.aiConsent)).toBeInTheDocument();
     expect(screen.getByText(pl.form.summary)).toBeInTheDocument();
-    expect(screen.getByLabelText(pl.form.labels.category)).toHaveFocus();
+    expect(screen.getByLabelText(pl.form.labels.category, { exact: false })).toHaveFocus();
     expect(onSubmit).not.toHaveBeenCalled();
     for (const control of [
-      screen.getByLabelText(pl.form.labels.category),
-      screen.getByLabelText(pl.form.labels.model),
-      screen.getByLabelText(pl.form.labels.purchaseDate),
+      screen.getByLabelText(pl.form.labels.category, { exact: false }),
+      screen.getByLabelText(pl.form.labels.model, { exact: false }),
+      screen.getByLabelText(pl.form.labels.purchaseDate, { exact: false }),
       screen.getByRole("radio", { name: pl.form.channel.online }),
       descriptionField(),
     ]) {
@@ -146,7 +148,7 @@ describe("CaseForm validation", () => {
 
   it("validates the model after trimming and accepts 2 through 100 characters", async () => {
     const { user } = setup();
-    const model = screen.getByLabelText(pl.form.labels.model);
+    const model = screen.getByLabelText(pl.form.labels.model, { exact: false });
     await user.type(model, " a ");
     await user.tab();
     expect(await screen.findByText(pl.errors.model)).toBeInTheDocument();
@@ -162,7 +164,7 @@ describe("CaseForm validation", () => {
 
   it("rejects a future purchase date with the exact AC-05 message", async () => {
     const { user } = setup();
-    await user.type(screen.getByLabelText(pl.form.labels.purchaseDate), "2999-01-01");
+    await user.type(screen.getByLabelText(pl.form.labels.purchaseDate, { exact: false }), "2999-01-01");
     await user.tab();
     expect(await screen.findByText(pl.errors.purchaseDateFuture)).toBeInTheDocument();
   });
@@ -172,7 +174,8 @@ describe("CaseForm validation", () => {
     await chooseCaseType(user, "complaint");
     const description = descriptionField();
     expect(description).toHaveAttribute("aria-required", "true");
-    expect(screen.getByText(pl.form.labels.requiredMarker)).toBeInTheDocument();
+    expect(screen.getAllByText(pl.form.labels.requiredMarker).length).toBeGreaterThan(0);
+    expect(description.closest("div[data-field]")?.querySelector("label")).toHaveTextContent(pl.form.labels.requiredMarker);
     await user.type(description, "x".repeat(19));
     await user.tab();
     expect(await screen.findByText(pl.errors.description)).toBeInTheDocument();
@@ -221,8 +224,8 @@ describe("CaseForm validation", () => {
   it("respects the disabled prop for all form actions and fields", () => {
     setup({ disabled: true });
     expect(screen.getByRole("button", { name: pl.form.submit })).toBeDisabled();
-    expect(screen.getByLabelText(pl.form.labels.model)).toBeDisabled();
-    expect(screen.getByLabelText(pl.form.labels.purchaseDate)).toBeDisabled();
+    expect(screen.getByLabelText(pl.form.labels.model, { exact: false })).toBeDisabled();
+    expect(screen.getByLabelText(pl.form.labels.purchaseDate, { exact: false })).toBeDisabled();
     expect(screen.getByRole("radio", { name: pl.form.caseType.complaint.label })).toBeDisabled();
   });
 });
@@ -231,7 +234,7 @@ describe("CaseForm photo handling", () => {
   it("uses a hidden input with the required accept list and supports selecting a real photo", async () => {
     const user = userEvent.setup();
     setup();
-    const input = screen.getByLabelText(pl.form.labels.photo, { selector: "input" }) as HTMLInputElement;
+    const input = screen.getByLabelText(pl.form.labels.photo, { selector: "input", exact: false }) as HTMLInputElement;
     expect(input).toHaveAttribute("type", "file");
     expect(input).toHaveAttribute("accept", "image/jpeg,image/png,image/webp");
     expect(input).toHaveClass("sr-only");
@@ -246,7 +249,7 @@ describe("CaseForm photo handling", () => {
 
   it("rejects unsupported formats and files larger than 10 MB", async () => {
     const { container } = setup();
-    const input = screen.getByLabelText(pl.form.labels.photo, { selector: "input" });
+    const input = screen.getByLabelText(pl.form.labels.photo, { selector: "input", exact: false });
     fireEvent.drop(container.querySelector("[data-drop-zone]")!, {
       dataTransfer: { files: [new File(["synthetic rejection fixture"], "bad.gif", { type: "image/gif" })] },
     });
@@ -259,7 +262,7 @@ describe("CaseForm photo handling", () => {
 
   it("accepts a real photo with an empty MIME type when its extension is supported", async () => {
     setup();
-    const input = screen.getByLabelText(pl.form.labels.photo, { selector: "input" });
+    const input = screen.getByLabelText(pl.form.labels.photo, { selector: "input", exact: false });
     const source = realPhoto("phone-1.jpg");
     const emptyTypePhoto = new File([source], source.name, { type: "" });
     fireEvent.change(input, { target: { files: [emptyTypePhoto] } });
@@ -270,7 +273,7 @@ describe("CaseForm photo handling", () => {
   it("replaces the selected photo with a second photo, supports removing it, and renders drag-and-drop", async () => {
     const user = userEvent.setup();
     const { container } = setup();
-    const input = screen.getByLabelText(pl.form.labels.photo, { selector: "input" });
+    const input = screen.getByLabelText(pl.form.labels.photo, { selector: "input", exact: false });
     await user.upload(input, realPhoto("phone-1.jpg"));
     await user.upload(input, realPhoto("laptop-2.webp"));
     expect(await screen.findByText("laptop-2.webp")).toBeInTheDocument();
@@ -281,14 +284,14 @@ describe("CaseForm photo handling", () => {
     expect(await screen.findByText("phone-3.jpeg")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: pl.form.removeImage }));
     expect(screen.queryByText("phone-3.jpeg")).not.toBeInTheDocument();
-    expect(screen.getByLabelText(pl.form.labels.photo, { selector: "input" })).toHaveValue("");
+    expect(screen.getByLabelText(pl.form.labels.photo, { selector: "input", exact: false })).toHaveValue("");
   });
 
   it.each(["Enter", " "])('opens the keyboard-operated drop zone with %s', async (key) => {
     const user = userEvent.setup();
     const { container } = setup();
     const dropZone = container.querySelector("[data-drop-zone]") as HTMLElement;
-    const input = screen.getByLabelText(pl.form.labels.photo, { selector: "input" }) as HTMLInputElement;
+    const input = screen.getByLabelText(pl.form.labels.photo, { selector: "input", exact: false }) as HTMLInputElement;
     const clickSpy = vi.spyOn(input, "click");
     dropZone.focus();
     await user.keyboard(key === " " ? " " : "{Enter}");
@@ -303,7 +306,7 @@ describe("CaseForm photo handling", () => {
     vi.stubGlobal("URL", URLMock);
     const user = userEvent.setup();
     const view = setup();
-    const input = screen.getByLabelText(pl.form.labels.photo, { selector: "input" });
+    const input = screen.getByLabelText(pl.form.labels.photo, { selector: "input", exact: false });
     await user.upload(input, realPhoto("phone-1.jpg"));
     await user.upload(input, realPhoto("laptop-2.webp"));
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:first");
@@ -323,7 +326,7 @@ describe("CaseForm submission and server errors", () => {
       channel: "online", description: "Ekran miga od tygodnia po upadku.", photo: expect.any(File),
     }));
     expect(screen.getByRole("button", { name: pl.form.submit })).toBeDisabled();
-    expect(screen.getByLabelText(pl.form.labels.model)).toBeDisabled();
+    expect(screen.getByLabelText(pl.form.labels.model, { exact: false })).toBeDisabled();
   }, 20_000);
 
   it("shows the AC-45 service banner and retries the preserved valid draft", async () => {
@@ -339,8 +342,8 @@ describe("CaseForm submission and server errors", () => {
     setup({ serverFieldErrors: { model: "Błąd modelu z serwera.", photo: pl.errors.imageFormat } });
     expect(await screen.findByText("Błąd modelu z serwera.")).toBeInTheDocument();
     expect(screen.getByText(pl.errors.imageFormat)).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByLabelText(pl.form.labels.model)).toHaveFocus());
-    expect(screen.getByLabelText(pl.form.labels.model)).toHaveAttribute("aria-invalid", "true");
+    await waitFor(() => expect(screen.getByLabelText(pl.form.labels.model, { exact: false })).toHaveFocus());
+    expect(screen.getByLabelText(pl.form.labels.model, { exact: false })).toHaveAttribute("aria-invalid", "true");
   });
 
   it("uses a supplied initial draft and retains it for a resubmission", async () => {
@@ -348,7 +351,7 @@ describe("CaseForm submission and server errors", () => {
     const initialDraft = {
       ...emptyDraft(), caseType: "complaint" as const, category: "laptop" as const, model: "ThinkPad T14",
       purchaseDate: "2026-11-20", channel: "online" as const,
-      description: "Ekran miga od tygodnia po upadku.", photo,
+      description: "Ekran miga od tygodnia po upadku.", photo, aiConsent: true,
     };
     const { user, onSubmit } = setup({ initialDraft });
     await user.click(screen.getByRole("button", { name: pl.form.submit }));

@@ -149,6 +149,8 @@ export async function fillCaseForm(page: Page, input: CaseInput): Promise<void> 
   await page.getByRole("radio", { name: pl.form.channel[input.channel], exact: true }).click();
   if (input.description !== undefined) await page.locator("#description").fill(input.description);
   await setPhoto(page, input.photo);
+  // AC-54: the AI consent is a required client-side gate, so every submit helper ticks it.
+  await page.getByRole("checkbox", { name: pl.form.labels.aiConsent, exact: true }).check();
 }
 
 export async function setPhoto(page: Page, photo: CaseInput["photo"]): Promise<void> {

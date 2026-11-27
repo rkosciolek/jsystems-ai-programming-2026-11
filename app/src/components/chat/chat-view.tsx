@@ -251,9 +251,9 @@ export function ChatView({ caseId, caseSummary, thumbnailUrl, firstMessage, onNe
                 <AlertDialogTitle>{pl.chat.newCase}</AlertDialogTitle>
                 <AlertDialogDescription>{pl.chat.newCaseConfirm}</AlertDialogDescription>
               </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{pl.common.cancel}</AlertDialogCancel>
-                <AlertDialogAction onClick={onNewCase}>{pl.chat.newCase}</AlertDialogAction>
+              <AlertDialogFooter className="sm:grid sm:grid-cols-2">
+                <AlertDialogCancel variant="default" className="w-full px-4">{pl.common.cancel}</AlertDialogCancel>
+                <AlertDialogAction variant="default" className="w-full px-4" onClick={onNewCase}>{pl.chat.newCase}</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

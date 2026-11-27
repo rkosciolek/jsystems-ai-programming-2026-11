@@ -29,6 +29,7 @@ export type Draft = {
   channel?: "online" | "store";
   description: string;
   photo?: File;
+  aiConsent?: boolean;
 };
 
 export function emptyDraft(): Draft {
@@ -47,7 +48,7 @@ type CaseFormProps = {
 };
 
 const FIELD_ORDER: (keyof Draft)[] = [
-  "caseType", "category", "model", "purchaseDate", "channel", "description", "photo",
+  "caseType", "category", "model", "purchaseDate", "channel", "description", "photo", "aiConsent",
 ];
 
 const imageExtensions: Record<string, string> = {
@@ -88,6 +89,7 @@ function focusField(field: keyof Draft): void {
     channel: '[data-field="channel"] [role="radio"]',
     description: "#description",
     photo: "[data-drop-zone]",
+    aiConsent: "#aiConsent",
   };
   document.querySelector<HTMLElement>(selectors[field])?.focus();
 }
@@ -136,6 +138,9 @@ export const clientSchema = z
       } else if (caseType === "complaint" && description.length < 20) {
         report(["description"], pl.errors.description);
       }
+    }
+    if ((value as { aiConsent?: unknown }).aiConsent !== true) {
+      report(["aiConsent"], pl.errors.aiConsent);
     }
     if (!photo) {
       report(["photo"], pl.errors.imageRequired);
@@ -264,7 +269,7 @@ export function CaseForm({
         className="space-y-6"
       >
         <fieldset data-field="caseType" disabled={formDisabled} className="min-w-0 space-y-2">
-          <legend className="mb-2 text-sm font-medium">{pl.form.labels.caseType}</legend>
+          <legend className="mb-2 text-sm font-medium">{pl.form.labels.caseType} {pl.form.labels.requiredMarker}</legend>
           <Controller
             name="caseType"
             control={control}
@@ -274,7 +279,7 @@ export function CaseForm({
                 value={field.value ?? ""}
                 onValueChange={(value) => field.onChange(value as CaseType)}
                 disabled={formDisabled}
-                aria-label={pl.form.labels.caseType}
+                aria-label={`${pl.form.labels.caseType} ${pl.form.labels.requiredMarker}`}
                 aria-required={true}
                 aria-invalid={Boolean(errors.caseType)}
                 aria-describedby={errors.caseType ? idForError("caseType") : undefined}
@@ -306,7 +311,7 @@ export function CaseForm({
         </fieldset>
 
         <div data-field="category" className="space-y-2">
-          <Label htmlFor="category-trigger">{pl.form.labels.category}</Label>
+          <Label htmlFor="category-trigger">{pl.form.labels.category} {pl.form.labels.requiredMarker}</Label>
           <Controller
             name="category"
             control={control}
@@ -339,7 +344,7 @@ export function CaseForm({
         </div>
 
         <div data-field="model" className="space-y-2">
-          <Label htmlFor="model">{pl.form.labels.model}</Label>
+          <Label htmlFor="model">{pl.form.labels.model} {pl.form.labels.requiredMarker}</Label>
           <Input
             id="model"
             placeholder={pl.form.placeholders.model}
@@ -353,7 +358,7 @@ export function CaseForm({
         </div>
 
         <div data-field="purchaseDate" className="space-y-2">
-          <Label htmlFor="purchaseDate">{pl.form.labels.purchaseDate}</Label>
+          <Label htmlFor="purchaseDate">{pl.form.labels.purchaseDate} {pl.form.labels.requiredMarker}</Label>
           <Input
             id="purchaseDate"
             type="date"
@@ -369,7 +374,7 @@ export function CaseForm({
         </div>
 
         <fieldset data-field="channel" disabled={formDisabled} className="min-w-0 space-y-2">
-          <legend className="text-sm font-medium">{pl.form.labels.channel}</legend>
+          <legend className="text-sm font-medium">{pl.form.labels.channel} {pl.form.labels.requiredMarker}</legend>
           <Controller
             name="channel"
             control={control}
@@ -380,7 +385,7 @@ export function CaseForm({
                 value={field.value ?? ""}
                 onValueChange={(value) => field.onChange(value as Channel)}
                 disabled={formDisabled}
-                aria-label={pl.form.labels.channel}
+                aria-label={`${pl.form.labels.channel} ${pl.form.labels.requiredMarker}`}
                 aria-required={true}
                 aria-invalid={Boolean(errors.channel)}
                 aria-describedby={errors.channel ? idForError("channel") : undefined}
@@ -406,7 +411,7 @@ export function CaseForm({
 
         <div data-field="description" className="space-y-2">
           <Label htmlFor="description">
-            {descriptionLabel}{" "}
+            {descriptionLabel}
             {caseType === "return" ? <span>{pl.form.optional}</span> : <span>{pl.form.labels.requiredMarker}</span>}
           </Label>
           <Textarea
@@ -434,7 +439,7 @@ export function CaseForm({
           control={control}
           render={({ field }) => (
             <div data-field="photo" className="space-y-2">
-              <Label htmlFor="photo-input">{pl.form.labels.photo}</Label>
+              <Label htmlFor="photo-input">{pl.form.labels.photo} {pl.form.labels.requiredMarker}</Label>
               {caseType && (
                 <p className="text-sm text-muted-foreground">
                   {caseType === "complaint" ? pl.form.hints.complaintImage : pl.form.hints.returnImage}
@@ -504,6 +509,22 @@ export function CaseForm({
             </div>
           )}
         />
+
+        <div data-field="aiConsent" className="space-y-2">
+          <label htmlFor="aiConsent" className="flex min-h-6 cursor-pointer items-start gap-3 text-sm">
+            <input
+              id="aiConsent"
+              type="checkbox"
+              disabled={formDisabled}
+              aria-invalid={Boolean(errors.aiConsent)}
+              aria-describedby={errors.aiConsent ? idForError("aiConsent") : undefined}
+              className="mt-0.5 size-6 shrink-0 cursor-pointer accent-primary outline-none focus-visible:ring-3 focus-visible:ring-ring disabled:cursor-not-allowed"
+              {...register("aiConsent")}
+            />
+            <span>{pl.form.labels.aiConsent}</span>
+          </label>
+          <FieldError id={idForError("aiConsent")} message={errors.aiConsent?.message} />
+        </div>
 
         {summaryVisible && <p role="alert" className="text-sm font-medium text-destructive">{pl.form.summary}</p>}
         <Button type="submit" disabled={formDisabled} className="w-full sm:w-auto">

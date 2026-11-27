@@ -465,4 +465,23 @@ describe("ChatView", () => {
     expect(container.querySelector("main")?.className).toMatch(/h-\[calc\(100dvh-/);
     expect(screen.getByTestId("chat-message-scroller").className).toContain("flex-1");
   });
+  it("renders Anuluj and Nowa sprawa in the new-case dialog as equal outlined pill buttons (AC-55)", async () => {
+    const user = userEvent.setup();
+    renderChat();
+
+    await user.click(screen.getByRole("button", { name: pl.chat.newCase }));
+    const dialog = await screen.findByRole("alertdialog");
+    const cancel = within(dialog).getByRole("button", { name: pl.common.cancel });
+    const confirm = within(dialog).getByRole("button", { name: pl.chat.newCase });
+    const header = screen.getAllByRole("button", { name: pl.chat.newCase })[0];
+
+    expect(cancel).toHaveAttribute("data-variant", "default");
+    expect(confirm).toHaveAttribute("data-variant", "default");
+    expect(cancel).toHaveAttribute("data-size", confirm.getAttribute("data-size"));
+    expect(header).toHaveAttribute("data-variant", "default");
+    expect(cancel.parentElement).toHaveAttribute("data-slot", "alert-dialog-footer");
+    expect(cancel.parentElement).toHaveClass("sm:grid-cols-2");
+    expect(cancel).toHaveClass("w-full");
+    expect(confirm).toHaveClass("w-full");
+  });
 });

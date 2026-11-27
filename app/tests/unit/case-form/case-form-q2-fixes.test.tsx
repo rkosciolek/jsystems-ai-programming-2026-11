@@ -20,6 +20,7 @@ const base = {
   purchaseDate: "2026-11-20",
   channel: "online",
   photo,
+  aiConsent: true,
 };
 
 beforeEach(() => {
@@ -70,7 +71,7 @@ describe("Q2.4 client schema is a single object schema (no intersection)", () =>
 describe("Q2.1 hidden photo input is truly clipped", () => {
   it("overrides the shared w-full/h-8 so it cannot widen the page", () => {
     render(<CaseForm initialDraft={emptyDraft()} onSubmit={vi.fn()} />);
-    const input = screen.getByLabelText(pl.form.labels.photo, { selector: "input" });
+    const input = screen.getByLabelText(pl.form.labels.photo, { selector: "input", exact: false });
     expect(input).toHaveClass("sr-only", "w-px!", "h-px!");
   });
 });
@@ -101,6 +102,6 @@ describe("Q2.3 text buttons are outlined pills", () => {
 describe("Q4.3 purchase date lower bound", () => {
   it("sets min=2000-01-01 on the date input", () => {
     render(<CaseForm initialDraft={emptyDraft()} onSubmit={vi.fn()} />);
-    expect(screen.getByLabelText(pl.form.labels.purchaseDate)).toHaveAttribute("min", "2000-01-01");
+    expect(screen.getByLabelText(pl.form.labels.purchaseDate, { exact: false })).toHaveAttribute("min", "2000-01-01");
   });
 });
