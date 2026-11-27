@@ -2,6 +2,22 @@
 
 This folder will contain the application built during the course.
 
+## Run
+
+Run everything from `app/` with npm (`package-lock.json`).
+
+| Command | What it does |
+|---|---|
+| `npm install` | Install dependencies (run by the developer, not by agents) |
+| `npm run dev` | Next.js dev server on http://localhost:3000 |
+| `npm run build` / `npm start` | Production build and server (port 3000 by default; `npm start -- -p <port>` to change) |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | Vitest unit and integration tests |
+| `npm run test:e2e` | Playwright E2E tests |
+
+Environment: copy `app/.env.example` to `app/.env.local` (or use the repo-root `.env`, which `next.config.ts` also loads). `OPENROUTER_API_KEY` and `LLM_MODEL` are required. Agent rules for this folder are in `AGENTS.md`.
+
 ## How to start
 
 The app is scaffolded live during the course through a structured process:

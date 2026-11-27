@@ -107,7 +107,7 @@ Hardware Service Decision Copilot is a proof of concept (PoC) of a self-service 
 ## 6. Acceptance Criteria
 
 ### Form
-- **AC-01** The form contains exactly these fields in this order: Case type, Equipment category, Model name, Purchase date, Purchase channel, Description, Photo.
+- **AC-01** The form contains exactly these fields in this order: Case type, Equipment category, Model name, Purchase date, Purchase channel, Description, Photo, AI consent (AC-54).
 - **AC-02** Case type is a required single choice with exactly two options: "Reklamacja" and "Zwrot". No option is preselected.
 - **AC-03** Equipment category is a required single choice with exactly the options listed in Section 8 (Functional). No option is preselected.
 - **AC-04** Model name is required, accepts 2–100 characters after trimming whitespace, and shows "Podaj nazwę lub model urządzenia (2–100 znaków)." when invalid.
@@ -165,6 +165,9 @@ Hardware Service Decision Copilot is a proof of concept (PoC) of a self-service 
 - **AC-46** If a chat reply fails, the customer's message remains visible with the error "Nie udało się wysłać odpowiedzi." and a **Ponów** action; retrying does not duplicate the customer's message.
 - **AC-47** No error message shown to the customer contains stack traces, model names, provider names or internal identifiers.
 - **AC-52** If the server no longer knows the case when a chat message is sent (e.g. after a server restart), the chat shows "Sprawa wygasła. Rozpocznij nową sprawę." with the **Nowa sprawa** action, and the message input is disabled.
+- **AC-53** Every required field's visible label ends with "(wymagane)": Case type, Equipment category, Model name, Purchase date, Purchase channel, Description (complaint), Photo and AI consent. The return Description keeps "(opcjonalnie)" (AC-08).
+- **AC-54** Below Photo, an unchecked checkbox "Wyrażam zgodę na analizę podanych informacji i zdjęcia przez sztuczną inteligencję (AI). (wymagane)". It is required: submitting without it shows "Zaznacz zgodę na analizę przez AI." under the checkbox, follows AC-15, and sends nothing. The consent is a client-side gate in the PoC and is not sent to the server.
+- **AC-55** Buttons in one action group have the same size and style: in the **Nowa sprawa** confirmation dialog, **Anuluj** and **Nowa sprawa** are both outlined pill buttons (design guidelines "Primary button") of equal width and height; on narrow screens they stack at full width.
 
 ### General
 - **AC-48** All UI text is in Polish.

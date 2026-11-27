@@ -1,0 +1,20 @@
+{
+  "status": 401,
+  "statusText": "Unauthorized",
+  "headers": {
+    "access-control-allow-origin": "*",
+    "access-control-expose-headers": "WWW-Authenticate,PAYMENT-REQUIRED,Payment-Receipt,PAYMENT-RESPONSE,Location,X-Generation-Id,x-openrouter-error-origin,x-openrouter-error-tool,X-Provider-Name,request-id,x-openrouter-subscription-passthrough,anthropic-ratelimit-unified-status,Retry-After,cf-ray",
+    "alt-svc": "h3=\":443\"; ma=86400",
+    "cf-ray": "a6082bacb87fe75e-WAW",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "date": "Thu, 26 Nov 2026 10:22:11 GMT",
+    "permissions-policy": "payment=(self \"https://checkout.stripe.com\" \"https://connect-js.stripe.com\" \"https://js.stripe.com\" \"https://*.js.stripe.com\" \"https://hooks.stripe.com\")",
+    "referrer-policy": "no-referrer, strict-origin-when-cross-origin",
+    "server": "cloudflare",
+    "set-cookie": "__cf_bm=tyrOrDPp6SRtSRU5VMuvjAgk2RuY33IfShKuYyLKBxM-1795688531.9541051-1.0.1.1-.CRflfHM1py0ioz7b.PJZyCxdwchAKXPBLb1Q6Ir5TS5J2w3ujGffSEB12ZRDzJol.nXErlAAKoFDEYo7JWJCYGpPyH.utAG97noXXSFns.0RnGtoiQMeGRp2OSc9Pv7; HttpOnly; SameSite=None; Partitioned; Secure; Path=/; Domain=openrouter.ai; Expires=Thu, 26 Nov 2026 10:52:11 GMT",
+    "transfer-encoding": "chunked",
+    "x-content-type-options": "nosniff",
+    "x-openrouter-error-origin": "client"
+  }
+}

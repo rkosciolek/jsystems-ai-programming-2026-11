@@ -1,0 +1,12 @@
+{
+  "date": "2026-11-26T12:29:12.597Z",
+  "modelRequested": "openai/gpt-6-luna",
+  "photo": "laptop-1.png",
+  "today": "2026-11-26",
+  "promptHashes": {
+    "vision-complaint": "046cb3982cd018e2c5a89bfc9c639707d7dbf5164b2e3f161bb92cc635a61bfa"
+  },
+  "policyHash": "245c9b51e4d67ce9cb2a1787f604ae41bcc28b8fdae245727c02936ac547b91c",
+  "modelSnapshot": "openai/gpt-6-luna",
+  "appCommit": "3d80c471c0d995ee5440a5d44807e624715181a7"
+}

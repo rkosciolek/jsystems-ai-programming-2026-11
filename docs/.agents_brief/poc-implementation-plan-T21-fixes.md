@@ -1,0 +1,18 @@
+# Brief T21 fixes — code-review findings (round 1)
+
+- **Task:** T21, issue #31. **Worker:** Sonnet subagent. Repo `/home/labuser/Dokumenty/repo/jsystems-ai-programming-2026-11`, app in `app/`. Concurrent: a QA agent in a separate worktree (does not touch the main checkout) and a read-only reviewer.
+
+## Findings to fix (from `/code-review high`, orchestrator-accepted)
+1. **decide.ts:96 (important):** `Output.object(DecisionOutcomeSchema)` rejects range citations (`§3 ust. 1–2`) before `normalizeCitedSections` runs → `invalid_output` → case fails `internal`. Use an LLM-output schema with plain strings for `citedSections` (keep the request schema otherwise identical in meaning), normalize, then validate with `CITED_SECTION_REGEX` and feed violations into the existing retry / `llm_inconsistent` path. Note: the JSON schema sent upstream changes → the replay of `llm-decision-*` recordings may no longer match request bodies; if the replay helper matches by URL/order only, fine; if a test pins the request body or schema hash, update it with a declared note in `MUTATIONS.md`/captured README rather than re-recording (no real calls).
+2. **pipeline/index.ts:184 (important):** log an `llm_inconsistent` event (allowlisted fields, ADR-000 §5) when `decide` returns `inconsistent: true`, in addition to `case_decided`.
+3. **api/cases/route.ts:56 (important):** requests without a numeric `Content-Length` (chunked) bypass the 413 preflight and `formData()` buffers everything. Enforce the limit: reject missing/invalid `Content-Length` with 411 or 413 **or** wrap `request.body` in a byte-counting stream that errors above 10 MB + 64 KB before `formData()` (prefer the counting stream; keep TAC-002-05: `formData()`/sharp never run for oversize).
+4. **api/chat/route.ts:44 (important):** apply the 1–2000 trimmed-length rule to **every** user message; accept only `text` parts in assistant messages other than index 0 (others → 400); cap the raw body (e.g. read `request.text()` with a limit of 512 KB → 413/400) before JSON parsing.
+5. **llm/chat.ts:302 (important):** after an applied revision, the reply must start with "**Zmieniona ocena**" and state previous → new decision (AC-36) even if the model writes its own text: write a server-built header text part (label + "Poprzednia ocena: X. Nowa ocena: Y.") right after the tool applies, before the model's step-2 text; keep the existing fallback (reason + next steps) only when the model writes no text; adjust the prompt `app/src/server/prompts/chat.md`? **No** — do not edit prompts (hash/recordings); handle it in code.
+6. **llm/chat.ts:309 (nit):** do not append the disclaimer twice: if the streamed model text of this turn already contains the disclaimer sentence, skip the server append.
+7. **llm/chat.ts:216 (nit):** `decision_revised` must not log the old decision's `citedSections`/`reasonCodes`; log `reasonCodes: ['chat_revision']` and omit `citedSections` (or log the cited sections that justify the new decision if available).
+
+## Rules
+Tests first for each (integration with replay fetch and declared mutations where a model response must differ; unit otherwise); red → green. Then `npm test`, `npm run lint`, `npm run typecheck`, `npm run build`. No real API calls, no git, no installs, never open `.env`, scratch only under `app/var/`. Editable: `app/src/server/llm/**`, `app/src/server/pipeline/**`, `app/src/app/api/**`, `app/tests/**` (only tests for these modules), `app/tests/fixtures/captured/MUTATIONS.md`, `app/tests/fixtures/captured/README.md`.
+
+## Report
+`docs/.agents_brief/poc-implementation-plan-T21-fixes.report.md`: per finding — test name, fix, result; check counts. Final answer ≤ 12 lines.

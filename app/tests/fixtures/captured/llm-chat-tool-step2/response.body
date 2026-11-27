@@ -1,0 +1,150 @@
+: OPENROUTER PROCESSING
+
+: OPENROUTER PROCESSING
+
+: OPENROUTER PROCESSING
+
+: OPENROUTER PROCESSING
+
+: OPENROUTER PROCESSING
+
+: OPENROUTER PROCESSING
+
+: OPENROUTER PROCESSING
+
+: OPENROUTER PROCESSING
+
+: OPENROUTER PROCESSING
+
+: OPENROUTER PROCESSING
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"","role":"assistant","reasoning":null,"reasoning_details":[{"type":"reasoning.encrypted","data":"gAAAAABrCAvTA_lw_0e5yo6PsdTY77OgoiX3mERopyx9DLng6_2Zbh5FVI2nw4GuErXAMrKEUzZPH2PuXG_M6fstFkW-lnRkTtR1KAAr8YxcziTSYqrvam2T-ZN3jDmjTxWvEvipzTwpaCh0O_1vLqMXbkoeDV8nXBP0rGwX4JjmSH2CyN2PW98qovZvc1fNA-hpb47-7lZoJ4_Db6w8DpwVW9tKGd4GEzyHSWx9UIgtbxyJLq2qpKav5PFLL6gK5GvB4Q_crDFJLsTV7efHAmH-E17IuQGWs84tVkxUL7XM5O3Ay95UlPPdW79ZTfVsnC_2_Z4JqwPFmYKmayFpvneKH3rIisPL5so99P6Ife6Sq7mneSHs4l5StcjpOJN4JWkQbP4p7t-SN4KDkgt6gASElo1eN8u2wN0MpsFzUHplV1V3mYAeLCj5X4m86p0rnaTCi2GOT1MCgXkz_xNh864sjKpahQS8LeHr0EBZVx3XvaDzLGJEP8hk_1D2mCRszoZ8LKI4ec0P3WbpeJKTAVsf110ru4Cnc4A8RDVr_69126eny2LzF_xwACA3D7P23MwkreXje2mQKGNfZhL8g037hXFVrlyprg4UWHDHm6EOjQXR9V8ZN3XCoB3AeMlcJfrAc_gwkPZZPBrJhv74bjt0k0QBpVLbzORRRW_2Fippnz05-b9OlqqmTJk4xX1d_1VGUScMERmsdabz99eVWYy1hoSdlvuPHzmkX8tlllvrgPBWzRSYnbRA557TtDFZEtcERgd9ttC9Hg8NvVBHi6aAgVhwxvHEQYKXXXMP900-Oc4FXJf95ufplpOpkdKpZmrGdgzdG8jKc7y3cN3BKVQxF6P-lVzENbQhg0tiffVNQSX-hX1ufB-c--gZqcB7b5IbfeApJZdtJcVQSGDeorD-QTeHmAWQHH55Lef0PqiydrawZcZoZBDRaqr0s1Ivc0yBs7jAdWYF3-J-9cfyxyJ314cPI_-xJAbKZuqOwD74RRlnJwGvV3elaf0C5xjM4CGBOI9OshfOhLTs9kqEv4yy-tf0L0cib6JMJ_GX8GyhLMNNBcPfDr_D7pjvyYmpOX-vi32971Hr5aHuzBoG30ph4iCDIfIDQpOOY6dy9OUfBnOHMvmm0QT6dAcfuESQUlKjuao0HaXe_mRKcNnp3dIsw19TnVRV3vabQBOH-GtsV6C3JRurMQH0iKS79MuZEFx7VSmotU47f5W6TxO0AieWNR9UBuuQIzlRi2_oARz4cdw31tzSV9LOFyg9avubhrxJi3qQ6HXs7S0IsXK3a5cTsiYn8XPA80QlKcfKnYWTBgh-WlPM9TKxu8P-H3Ya28g-QH2C7uJypHoBglUEkgnOOC3RFTaohYVrhDV3gNrcx_Icjuh-s_QTsWtmcPqv2YvrLCKFfyiUIlJllPMMUxggb0Odnt6P1TtPVJruNaH3ZdLiysmLyBsRc1_a69x9CSvGKgOQZ_gq5NI5eAm3DrzGTUPppvYopGvDZnsTac1dA5lclJYrEmPLQjo6wZEhYAXlL6Z4n42bwsaSxxbskAFbDlRsXcs1EJjJLrr_dp2vyZibV3c02zAIAU1VQxFmVGYygKZ2KkasbNdi5iRfxRGIl3w4nzrDTO9CqaMtFkG9VkHk2xnAw4ArZnd9fW7U6rdsxYwLEr1EtMS_SAGz5rcsBU_wqpDcSzMeYWjY9BzjITnPn0Q9eF_AZjUZzBK1ClIKdxZEFpkr2M67cfbKDCMi9rZ5stHk-FBw_nXUaLmUM9fKaipHeFQIPvl45eOeJumQ5V0hTKGlLKT5vUb5LfKw9xYo8ZWaI3Mp-D_gXxI_VLUpNmFYwBzP_WlTBPmh4DosQTGYluZJpMXCHkOIwmgzjoc4ra1PQZJVYqgMopB7tkmPvz15rTrzHG4rJdrU_-DCQLYHP5GfDTFVyEAUK86EvAOcMKKWVijbomIgK3Y0ORFpu8JekMbkRTLDrkvgrmc60-ZpsL0g34FJJCC6jIikPR7Mvzgoh7FlXCXtICrN7InaDYv6hxpBor_lsXZbnyuZDjS3AlHYLNiWUVVm51NbH0jiNL06IYjRCw9FAZ0CPCXz5jwyRN3OJIY42mG2tAe4_CJ57MFWNPmiPBQQJQi1NDmL5SH1Tgd_v01VsStMNPi_sBYjcAPjslBN04XSJbwfPfhOYssSm2CyYRBxfsR86rXr3Ta5B6qN7L3T2uERPbKxEsw-rViyhoPo2wn1H-qOh-_sPPnK0HOoQm63Bs3HIcURFcswd_JPFXUAHWpCJc3XbJXNrOjd1-a3RatRtrRU-oLQ90l69GfCVfZtRkvBVXUUw65kiPSJVDlcjKNuphFwt9ZLz-FU06EwGIizrYeywNjOjfhiDYBaUMHJ4VXug6jyqbWl7ZwyJSw4POvND9a-fDw9jA4QWHSTTNxXhPwRj3YyOxJP4FKRRxHzXynI_iCndA2dgSHGXLsYyEIjn_qWArY04J0aZARCteYZkabkru01kkokGgSr7TwXvajwDbiXigX5gW01KRnPsfsJHfiGPEcGiRNvZTn6enTPp_uJPG1zJR_0X6p37s0o7edjkGGa0kzr5absXg9KikfkzMmW9f-DW-nnM86EggKDy3h8Q86DBVRNlZCb_uvvlJDCcvpn379Dxf_p_NVjsTYSELyYt3PjLW53hCBchE8JrIXOaLIjYK7_oBUCnOgA9YftZbjZWl_uwfK3Ww222CYT19XKe1XGjmXHCbzfR5B5JIw6vHyUwLwklCPVGqQ0NYDuWxiEH-LPLxK2fRXJFoRFOHBy0sBfZ7FnC_EC_F9xeqpjupCQahS1PGm_UPG-VRmSYA91LN4thPAzu4e6Txhnfp1asxhbl4pUxtnth3vjLyJ2pdDMQ3azVIBfEHHoPjiu-s3rI_GF4SfMyeZ52m4JYvkFBzualu8hYvN9Tx9SiAAcxhgswzgpmEL3yJ7BlAxObEFQOYV9PhqgyUkLqVMATg60beFw7u51tNn5cR_sz5wuykrTK-Vd7bb6nBc8To2p1j7Dx1pvEkU4-4S1qOUpkFRonAc9HKZIdvY4WETq2oeDPY4iydnMcAIwKbTmZ5yKe4F9XF0i7tr3KJpv3xoio17_Ini94l8QJWf_YS6PspIQvKnntClnQCUT76oUe0IfFMzzYJ_t69SbQbrL5V-IiiPevVtyTc-eDWGEIG93ZGtrqpNjDfOeAjPvw5SaHCMTIu52HRnAi1W0uJNDqqV58Gcp-2kmquG0abMf_2zt5PE4zV0GAUgaajNuDUXObAKY-rnVkVjSfatgIazE15q1I8vvU3ql5apWicyHcmurWps__aHLKpE1eUygd04FB3k0vPBZvScaVjFWPMWI6gBJ-tWIEg3KjUNYu_UT73pEPJytJQaaUOO52aVQq_Ou4HtoqlGnIfn_LE1uKizHqcWSyWp9EAn1G_TmQZrSY7V7hHD1ICTykJmHLnh8WCq2-d2CIXMInUm_aGLK0v4B75pLKf99LcWHLLCiDzyOiqKHHJlYmZU7kDEy0VPdVvjIxcUhw0R4GC62LnlZ41n6WKIMqPG7lOCz1rp6hcjbhH5nSTkEVFrAyJhp_VGaHjhoT1kA18bdkcFsD4xtKK-HvnYXI6TvDwCTvsbAZzUjCAtIi4w9lWu2lpH8LpgZeZAEpwLWymb45oSSqIFUBfgvMI6itb2nMORhPTX7cxZfz3tURPTX80-t9yd57c6pzPnGLz99E0OMz58pZLwyktA3QdIRu1nKbymOvMjw7MP_kuT4Jq49OymzfkhJQ-HLWzprLzYZRGuONeryUwjdBHZ5urLIq3xr1buioKVk7cn96kXfwURCSkc4bUiKaAhROGSyD2IfPr_XJIyHclDhLSsXXCGmL5lVr_SksBBK-vD2QBY-tRYIArEfq1ltrXVJzr2j4-jvWXzqd9kg4hlk1hQetmpY3GLVPU0ogksdEefzw41qL_anVuwg0tNqxhWCZSlkaLDa_kJ8UQxs-K-i6uCZYPl3pYEWscDKRY0NzBSfE1aVzVaDWCf1qRXMZROm1Wk-2zQ65DfNJGJ2NJmdgN_9Nr1f2jdfw3D9Q64QE9t05i6H06lagIMAI8Q8OONRpUqC7ftyurK1k70p6BKHcDWqmxZ9G0kmdSXM5Tjlsp4YMaoV-jd93DaNM5mlZgFZEi4UePbu4x9kg92zaXQpq5Fn6-fUVbTx73f0pINGjk554vRtw2Fx5jMwsF0zODmCPxeoZk3H7-_MWm0998TMq6LasvEvVrhpEJMj8dAGdQDdQZYyGx1hAcZTtyvnfSaiPquRaHAKoXDHf9HPDeBk6HD3TvE8qpwr1xYQmtXPdfuKYWck2CgFBULowL5FRiuYA8Xul1Fls1GcqCYQ-IAwPT3n0MrP15VDL8B9PsVXvGm3zUy22P2DDyEp_ojGp2H3f0r-UdHxT9vGjPHeR7M7MSwAYpazeXdWpZGYV0TXHgGX0qZBaCm30dcLehyj943y8EceOQwDCXFvn_VPUsb-0Wjxt1cofOOIk6rQtCP7PfH2-L1FYngrfyjMp2WQ30klspWOnFcMcszUvmWU2J6areUam9C5QPgTt9aqje3OruqtWjnP7ed5ndJfr_R_HplprKx6pf5xJ1Bbnf0OjoWfO1S8-1D4WKLzqyjIhrq2UIJg3BbjjlEaPF4zyZX1tttdNzIStYrs9hi3Pefj5PZtPZdPmSTuNNo6ALvRkdzmePCSwESHhEm261Id8eN2P6XSvtwJT1HzRwob27SADS8skZSD4hCZUwRNVCxeOLoaUmGMSfVJp6rs9vfCvnojHwxmdnBji6r4y0C-zbj0Dyax1_w2M5wt3xvlXUSBQqUFs0Q9QZ6FUel9M1OW8VyAzs_we-g-aE-JCpdDjZqxXA3nv8oWmz9jY0491l49p26ZUOsqGuCDt9WyEhGI4UNyYZQpnXBLzr-fYeK0O5QUPmvQkU2XVV_vZkFmqi8A5309txmglcGL6YcJGH92yTet-u0iMyM63IFZ0FZwZ0ptjbQx6ANcIR9l21DygJbfj7QqfOsSkUfsKYOqeSJfrAgAzt1Wt-5Wva8NNrX2OMYhDyClpoSz4AnevIAP_hdQN7y_hiOsbnpc8dEMN6V5qmvKvVskhHVx3p7HRGmf3DDxpUfjgHOBcc2ACp-I_s-_CNREgAIAFrhEvydsYUC8Y6aB2ZROe99iPI9G0VpZ_IOzFfuhvu_JciEV2-g4-NjUX_xT18XLvRfmZC6WB4bXXYFxEYFZDhY2niC7SkcwYzTQiD6M59c1zbL629nK_1lGACnhWPlyn_VANEp5nyvtt8SBuFS4BEVLra38HcSW1i32zi5RDJonCMY_P7d7MEvwc0O1wyZWX-ma5d41mW8JRD8ynxsJ_a3v9BVt2hyotK-Fr3zMbh8tXLYVkyTB4Z3iZEV1jox1TqJIZ4EOjv2IhirSDYcsoViKwa1pe1-A-gF79bBvYOp5zoJb3wfZsZCsrIo2-BS4BJZpeA3fifouI4qHp3zT32bocVxBTx_1UH6wgOniqE7tKpWgh5p0iYTCR6yiLrKt5ieVZXlxq9UIPtjudjETf_OA8m5S-DPIehnnjkJNUhjOpfAK7sxROQCwobIQyb8U6-UDIiAOU2-2R8KnW-UGkg_zN37bshNHMPhDoSX1EYLHgRrFNMuPT3TN6hLJpL4YBrTv1QnhtqudVcmcXkN5OJb7X-1XhNZJNf6txQcUu1uyACeptY_bs1Xmrk0uoipTVhnsHqHIdrh-P2Dt7EuBu1S55oX-e6LM90VgsXiqMMYslT1EN5vT-u73vtA1wGfnJBcCzZw_lhD5IOEyo0ubxLHT4anjCKxsnbeYpo1KRzFkGA2mLN-a_6zHT2O2C2dUvuBmFSy6PAuHS8PxcFZl7TW_5ReSIc5B8MR_hdyv_xZwgbYU7VLKPhxKNyk=.eyJlbmRwb2ludF9zbHVnIjoib3BlbmFpL2dwdC02LWx1bmEtMjAyNjA5MjJ8YXp1cmUifQ","format":"azure-openai-responses-v1","id":"rs_0052ff821e46c847016b080bcf44b88193a46c51d9dbca0aa5","index":0}]},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"**","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"Z","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"mien","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"iona","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":" oc","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"ena","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"**\n\n","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"Pop","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"r","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"zed","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"nia","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":" decyz","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"ja","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":":","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":" **","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"W","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"stęp","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"nie od","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"rzu","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"cono**","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":". Now","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"a decyz","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"ja:","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":" **Wst","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"ępnie zaak","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"ceptowano","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"**.\n\nPo","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":" korekcie","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":" kanału zak","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"upu na internetowy","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":" zgłoszenie mie","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"ści się w ","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"14-dniowym okres","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"ie odstąpienia","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":" od umowy. Z","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"godnie z regulaminem","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":" data zakupu","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":" jest w tej ocenie trakt","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"owana jako data otrzymania to","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"war","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"u. Widoczne na zdję","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"ciu uszkodzenia mogą jednak","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":" skutkować pomniejszeniem zwrot","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"u, a ostateczną ocenę","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":" stanu i ewentual","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"nego pomniejszenia przeprowadzi serwis po","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":" otrzymaniu urządzenia","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":". Zdjęcie nie pozwala też potwier","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"dzić, że pokaz","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"uje zadeklarowany model.\n\n","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"Jeśli złożysz oświadczenie","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":" o odstąpieniu, odeślij towar w cią","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"gu ","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"14 dni od jego złożenia. Bezpo","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"średni koszt odes","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"łania ponosisz Ty. Przed wysy","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"łką wylog","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"uj się z kont, usuń blokady i przywróć ustaw","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"ienia fabryczne. Zabezpie","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"cz urządzenie do transportu, najlepiej w oryginal","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"nym opakowaniu wraz z akcesoriami.","role":"assistant"},"finish_reason":null,"native_finish_reason":null}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","choices":[{"index":0,"delta":{"content":"","role":"assistant","reasoning":null},"finish_reason":"stop","native_finish_reason":"completed"}]}
+
+data: {"id":"gen-1795689422-Wkryr6s7fApYGQtWouHX","object":"chat.completion.chunk","created":1795689422,"model":"openai/gpt-6-luna","provider":"Azure","service_tier":"default","choices":[{"index":0,"delta":{"content":"","role":"assistant"},"finish_reason":"stop","native_finish_reason":"completed"}],"usage":{"prompt_tokens":3314,"completion_tokens":607,"total_tokens":3921,"cost":0,"is_byok":true,"prompt_tokens_details":{"cached_tokens":3187,"cache_write_tokens":124,"audio_tokens":0,"video_tokens":0},"cost_details":{"upstream_inference_cost":0.00035117,"upstream_inference_prompt_cost":0.00004767,"upstream_inference_completions_cost":0.0003035},"completion_tokens_details":{"reasoning_tokens":329,"image_tokens":0,"audio_tokens":0}}}
+
+data: [DONE]
+

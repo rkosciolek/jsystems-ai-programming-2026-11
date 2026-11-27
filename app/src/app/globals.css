@@ -1,0 +1,77 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@source "../../node_modules/streamdown/dist/*.js";
+
+/* Light theme only. Values come from assets/design-tokens.json (see docs/design-guidelines.md). */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-noto-sans), Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-heading: var(--font-sans);
+  --color-success: var(--success);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: #fefefe;
+  /* Body text: slate #515D6A (6.7:1 on white). Headings use navy via --card-foreground / text-primary. */
+  --foreground: #515d6a;
+  --card: #ffffff;
+  --card-foreground: #003963;
+  --popover: #ffffff;
+  --popover-foreground: #003963;
+  --primary: #003963;
+  --primary-foreground: #ffffff;
+  --secondary: #e9f4fd;
+  --secondary-foreground: #003963;
+  --muted: #e9f4fd;
+  /* Never #788CAA for text (3.4:1). */
+  --muted-foreground: #515d6a;
+  --accent: #0096e0;
+  --accent-foreground: #003963;
+  --destructive: #cc1d56;
+  --success: #208a20;
+  --border: #85d2f1;
+  --input: #85d2f1;
+  /* Focus rings and borders only, never text (3.3:1). */
+  --ring: #0096e0;
+  /* Square sections by default; pill shape is set explicitly on buttons. */
+  --radius: 0px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
