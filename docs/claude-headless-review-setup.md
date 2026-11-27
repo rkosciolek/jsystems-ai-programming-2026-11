@@ -1,65 +1,66 @@
-# Claude Code headless PR review: setup
+# Claude Code headless PR review: setup (subscription token)
 
 The workflow `.github/workflows/claude-headless-review.yml` installs the Claude Code CLI on the
 runner and runs `.github/scripts/claude_pr_review.sh`. The script passes the PR diff to
 `claude -p` (headless mode) and posts the Markdown review as **one PR comment**, updated on every
-push. The review also appears in the run's job summary. Until a secret exists, every run logs
-`skipped: secret not configured` and passes.
+push. The review also appears in the run's job summary.
 
-## 1. Choose how Claude authenticates
+It runs on your **Claude subscription** (Pro, Max, Team or Enterprise) with a long-lived OAuth token
+in the `CLAUDE_CODE_OAUTH_TOKEN` secret. Reviews count against your plan's usage limits, not
+API billing. Until the secret exists, every run logs `skipped: secret not configured` and passes.
 
-| Secret | Source | Billing | When to use |
-|---|---|---|---|
-| `CLAUDE_CODE_OAUTH_TOKEN` | `claude setup-token` | your Pro/Max/Team/Enterprise plan limits | your own repo, your own token (this course) |
-| `ANTHROPIC_API_KEY` | [Claude Console](https://platform.claude.com) → API keys | pay per token | team or company CI, a secret shared across repos |
+> **Scope:** your own token on your own repositories is the documented use. For a bot shared across
+> a team or company, Anthropic recommends an API key or workload identity federation instead,
+> because the token is tied to the subscription of the person who created it.
 
-Anthropic's docs recommend an API key (or workload identity federation) for a secret shared
-across repos, because an OAuth token is tied to the subscription of the person who created it.
+## 1. Create the token
 
-If both secrets are set, the API key wins. The script then uses `--bare` and a
-`--max-budget-usd` cap. `--bare` never reads `CLAUDE_CODE_OAUTH_TOKEN`, so with only the OAuth
-token the script runs without `--bare`.
-
-## 2. Create the token (OAuth option)
-
-In a terminal on your machine (not in a Claude session):
+In a terminal on your machine (not inside a Claude session):
 
 ```bash
 claude setup-token
 ```
 
-1. A browser opens with the same sign-in as `/login`. Sign in with the account whose plan should pay
-   for the reviews.
+1. A browser opens with the same sign-in as `/login`. Sign in with the account whose plan should
+   cover the reviews.
 2. The terminal prints a token that is valid for **one year**. It isn't saved anywhere, so copy it
    now. Don't paste it into chat, a file or a commit.
-3. The token can only make model requests (no Remote Control, no claude.ai connectors).
+3. The token can only make model requests (no Remote Control, no claude.ai connectors). That's
+   all the review needs.
 
-## 3. Add the secret on GitHub
+## 2. Add the secret on GitHub
 
-**Repository → Settings → Secrets and variables → Actions → Secrets → New repository secret**
+1. Open the repository → **Settings** (gear icon in the top menu).
+2. Left sidebar: **Secrets and variables → Actions**.
+3. Tab **Secrets** → **New repository secret**.
+4. Name: `CLAUDE_CODE_OAUTH_TOKEN` (exactly, it's case-sensitive). Secret: paste the token.
+5. Click **Add secret**. GitHub never shows the value again; you can only update or delete it.
 
-- Name: `CLAUDE_CODE_OAUTH_TOKEN` (or `ANTHROPIC_API_KEY` for the API key option)
-- Secret: paste the value → **Add secret**
+Don't also add `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` to this workflow. Either one takes
+precedence over the subscription token, so the script stops with an error if one is set.
 
-## 4. (Optional) Variables
+## 3. (Optional) Variables
 
-**Settings → Secrets and variables → Actions → Variables**
+Same page, tab **Variables**:
 
 | Name | Default | Note |
 |---|---|---|
-| `CLAUDE_MODEL` | `sonnet` | Alias (`sonnet`, `opus`, `haiku`, `fable`) or a full model ID |
-| `CLAUDE_MAX_BUDGET_USD` | `1` | Spending cap per review. Used only with `ANTHROPIC_API_KEY` |
+| `CLAUDE_MODEL` | `sonnet` | Alias (`sonnet`, `opus`, `haiku`, `fable`) or a full model ID. `opus`/`fable` use up plan limits faster |
 | `CLAUDE_CODE_VERSION` | `2.1.332` | CLI version installed from npm. Pinned so a new release can't change CI unexpectedly |
 
-## 5. Test it
+## 4. Test it
 
-1. Push any commit to a branch with an open, non-draft PR from this repository. Fork PRs get no
+1. Push a commit to a branch with an open, **non-draft** PR from this repository. Fork PRs get no
    secrets and are skipped.
-2. **Actions → Claude Headless Review**: `Check review secret`, `Install Claude Code`,
+2. **Actions → Claude Headless Review**: `Check Claude subscription token`, `Install Claude Code`,
    `Run headless review` and `Post or update PR comment` should all be green.
-3. The PR shows a **"Claude headless review"** comment with the sections *Blocking issues*,
-   *Non-blocking issues*, *Missing tests* and *Summary*, plus a footer with turns and the
-   API-equivalent cost.
+3. The PR shows a **"Claude headless review"** comment with *Blocking issues*, *Non-blocking
+   issues*, *Missing tests* and *Summary*. The footer shows the model and the number of turns.
+
+## 5. Renew the token before it expires
+
+The token lasts one year. Add a calendar reminder, run `claude setup-token` again and update the
+secret (step 2 → the secret → **Update**).
 
 ## What the workflow does for safety
 
@@ -67,17 +68,20 @@ claude setup-token
 - `persist-credentials: false` keeps the GitHub token out of `.git/config`, so Claude can't read it.
 - The diff is treated as data. The prompt tells Claude to ignore instructions inside it.
 - Diffs over 300 kB are skipped instead of sent (`MAX_DIFF_BYTES` in the script).
+- The script doesn't use `--bare`, because `--bare` never reads `CLAUDE_CODE_OAUTH_TOKEN`. Without
+  it, Claude also loads the repository's `CLAUDE.md`/`AGENTS.md` as review context.
 
 ## Troubleshooting
 
 | Symptom | Cause and fix |
 |---|---|
-| `skipped: secret not configured` | The secret is missing or misnamed |
-| `Invalid API key` / `401` with the OAuth token | The token expired or was copied incorrectly. Run `claude setup-token` again and update the secret |
-| Error about auth while only the OAuth token is set | Someone added `--bare` to the script; `--bare` reads only `ANTHROPIC_API_KEY` |
+| `skipped: secret not configured` | The secret is missing or misnamed. It must be exactly `CLAUDE_CODE_OAUTH_TOKEN` |
+| `Invalid API key` / `401` / `authentication_error` | The token expired, was revoked or was copied incorrectly. Run `claude setup-token` again and update the secret |
+| `Unset ANTHROPIC_API_KEY / ANTHROPIC_AUTH_TOKEN` | One of them is set in the workflow env. Remove it |
+| Rate-limit or usage-limit error | Your plan's limit is used up. Wait for the reset, or set `CLAUDE_MODEL` to a smaller model |
 | `Claude returned an error: error_max_turns` | Raise `--max-turns` in the script, or review a smaller PR |
-| `Claude returned an error: error_max_budget_usd` | Raise `CLAUDE_MAX_BUDGET_USD` |
 | No comment, but the run is green | Check the job summary. The token needs `pull-requests: write` (Settings → Actions → General) |
 
-Sources: <https://code.claude.com/docs/en/headless>, <https://code.claude.com/docs/en/authentication>,
-<https://code.claude.com/docs/en/github-actions>.
+Sources: <https://code.claude.com/docs/en/headless>,
+<https://code.claude.com/docs/en/authentication#generate-a-long-lived-token>,
+<https://code.claude.com/docs/en/legal-and-compliance>.

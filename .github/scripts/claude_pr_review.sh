@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
-# Claude Code headless PR review. Based on course-materials/cicd-headless/scripts/claude_pr_review.sh.
+# Claude Code headless PR review on a Claude subscription token.
+# Based on course-materials/cicd-headless/scripts/claude_pr_review.sh.
 # Usage: claude_pr_review.sh <base-branch> [output-dir]
-# Auth (one of):
-#   ANTHROPIC_API_KEY        Console API key; runs with --bare and a --max-budget-usd cap.
-#   CLAUDE_CODE_OAUTH_TOKEN  `claude setup-token` subscription token; --bare would ignore it,
-#                            so it runs without --bare (CLAUDE.md is then loaded as context).
-# Optional: CLAUDE_MODEL (default sonnet), CLAUDE_MAX_BUDGET_USD (default 1, API key only),
-#           MAX_DIFF_BYTES (default 300000).
+# Auth: CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token`. No --bare here: --bare never reads
+# CLAUDE_CODE_OAUTH_TOKEN (only ANTHROPIC_API_KEY or apiKeyHelper).
+# Optional: CLAUDE_MODEL (default sonnet), MAX_DIFF_BYTES (default 300000).
 set -euo pipefail
 
 BASE_BRANCH="${1:?Usage: claude_pr_review.sh <base-branch> [output-dir]}"
@@ -14,19 +12,21 @@ OUTPUT_DIR="${2:-.claude-ci}"
 MODEL="${CLAUDE_MODEL:-sonnet}"
 MAX_DIFF_BYTES="${MAX_DIFF_BYTES:-300000}"
 
+if [[ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]]; then
+  echo "::error::Set Actions secret CLAUDE_CODE_OAUTH_TOKEN (create it with: claude setup-token)." >&2
+  exit 1
+fi
+if [[ -n "${ANTHROPIC_API_KEY:-}" || -n "${ANTHROPIC_AUTH_TOKEN:-}" ]]; then
+  # Both take precedence over CLAUDE_CODE_OAUTH_TOKEN and would bill the API instead of the plan.
+  echo "::error::Unset ANTHROPIC_API_KEY / ANTHROPIC_AUTH_TOKEN; this review runs on the subscription token." >&2
+  exit 1
+fi
+
 mkdir -p "$OUTPUT_DIR"
 
 # actions/checkout with fetch-depth: 0 already has origin/<base>; fetch only when it is missing.
 git rev-parse --verify --quiet "origin/$BASE_BRANCH" >/dev/null || git fetch origin "$BASE_BRANCH"
 git diff --merge-base "origin/$BASE_BRANCH" HEAD > "$OUTPUT_DIR/pr.diff"
-
-auth_args=()
-if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
-  auth_args=(--bare --max-budget-usd "${CLAUDE_MAX_BUDGET_USD:-1}")
-elif [[ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]]; then
-  echo "::error::Set Actions secret CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY." >&2
-  exit 1
-fi
 
 diff_bytes=$(wc -c < "$OUTPUT_DIR/pr.diff")
 if [[ "$diff_bytes" -eq 0 ]]; then
@@ -54,7 +54,7 @@ EOF
 )
 
   # Read-only tools only: no Bash, Edit, Write or web access in CI.
-  claude -p "$REVIEW_PROMPT" "${auth_args[@]}" \
+  claude -p "$REVIEW_PROMPT" \
     --model "$MODEL" \
     --tools "Read,Grep,Glob" \
     --output-format json \
@@ -64,7 +64,7 @@ EOF
   [[ -s "$OUTPUT_DIR/review.json" ]] || { echo "::error::claude produced no output." >&2; exit 1; }
 fi
 
-python3 - "$OUTPUT_DIR/review.json" "$OUTPUT_DIR/review.md" <<'PY'
+python3 - "$OUTPUT_DIR/review.json" "$OUTPUT_DIR/review.md" "$MODEL" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -79,8 +79,7 @@ if payload.get("is_error"):
     sys.exit(f"Claude returned an error: {payload.get('subtype')} ({detail})")
 if not result:
     result = "## Summary\n\nClaude returned an empty review.\n"
-cost = payload.get("total_cost_usd")
-footer = f"\n\n---\n<sub>Claude Code headless · turns: {payload.get('num_turns', '?')}"
-footer += f" · cost (API-equivalent): ${cost:.4f}</sub>" if isinstance(cost, (int, float)) else "</sub>"
+footer = f"\n\n---\n<sub>Claude Code headless · subscription token · model: {sys.argv[3]}"
+footer += f" · turns: {payload.get('num_turns', '?')}</sub>"
 review_md.write_text(result + footer + "\n", encoding="utf-8")
 PY

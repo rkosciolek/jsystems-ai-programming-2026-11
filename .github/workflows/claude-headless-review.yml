@@ -1,7 +1,8 @@
-# Claude Code headless (`claude -p`) PR review: runs .github/scripts/claude_pr_review.sh and
-# posts the result as one PR comment that is updated on every push.
-# Secret (one of): CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`) or ANTHROPIC_API_KEY.
-# Optional variables: CLAUDE_MODEL, CLAUDE_MAX_BUDGET_USD, CLAUDE_CODE_VERSION.
+# Claude Code headless (`claude -p`) PR review on a Claude subscription (Pro/Max/Team/Enterprise).
+# Runs .github/scripts/claude_pr_review.sh and posts the result as one PR comment that is
+# updated on every push.
+# Secret: CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`, valid for one year).
+# Optional variables: CLAUDE_MODEL, CLAUDE_CODE_VERSION.
 # Setup steps: docs/claude-headless-review-setup.md
 name: Claude Headless Review
 
@@ -28,14 +29,13 @@ jobs:
     timeout-minutes: 15
     env:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     steps:
-      - name: Check Claude secret
+      - name: Check Claude subscription token
         id: secret
         shell: bash
         run: |
-          if [[ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" && -z "${ANTHROPIC_API_KEY:-}" ]]; then
-            echo "::notice::skipped: secret not configured (CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY)"
+          if [[ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]]; then
+            echo "::notice::skipped: secret not configured (CLAUDE_CODE_OAUTH_TOKEN)"
             echo "configured=false" >> "$GITHUB_OUTPUT"
           else
             echo "configured=true" >> "$GITHUB_OUTPUT"
@@ -64,7 +64,6 @@ jobs:
         if: steps.secret.outputs.configured == 'true'
         env:
           CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL || 'sonnet' }}
-          CLAUDE_MAX_BUDGET_USD: ${{ vars.CLAUDE_MAX_BUDGET_USD || '1' }}
         run: bash .github/scripts/claude_pr_review.sh "${{ github.event.pull_request.base.ref }}" "$RUNNER_TEMP/claude-ci"
 
       - name: Post or update PR comment
