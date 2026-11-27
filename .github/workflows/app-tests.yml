@@ -1,0 +1,134 @@
+# App tests: lint, typecheck, Vitest unit/integration tests and Playwright E2E for app/.
+# Every job is skipped while the branch has no app/package-lock.json (e.g. main before the
+# PoC app is merged). E2E runs against the real stack and calls OpenRouter with the
+# OPENROUTER_API_KEY secret, so each run costs OpenRouter credits.
+# Optional Actions variables: LLM_MODEL, VISION_MODEL, JEV_MODEL, LLM_REASONING_EFFORT.
+# Setup steps: docs/ci-app-tests-setup.md
+name: App Tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: app-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+  # OpenRouter model IDs as the app expects them (no "openrouter/" prefix; that prefix is only
+  # for PR-Agent's PR_AGENT_MODEL). Defaults match app/.env.example.
+  LLM_MODEL: ${{ vars.LLM_MODEL || 'openai/gpt-6-luna' }}
+  VISION_MODEL: ${{ vars.VISION_MODEL || vars.LLM_MODEL || 'openai/gpt-6-luna' }}
+  JEV_MODEL: ${{ vars.JEV_MODEL || 'typesafe/jev-1.14' }}
+  LLM_REASONING_EFFORT: ${{ vars.LLM_REASONING_EFFORT || 'medium' }}
+
+jobs:
+  detect:
+    name: Detect app
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      present: ${{ steps.app.outputs.present }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: app
+      - name: Check for app/package-lock.json
+        id: app
+        shell: bash
+        run: |
+          if [[ -f app/package-lock.json ]]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::skipped: no app/package-lock.json on this ref"
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  checks:
+    name: Lint, typecheck, unit and integration tests
+    needs: detect
+    if: needs.detect.outputs.present == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      # Unit tests mock everything and integration tests replay captured recordings,
+      # so this step gets no API key.
+      - run: npm test
+
+  e2e:
+    name: E2E (Playwright, real OpenRouter)
+    needs: [detect, checks]
+    # Fork PRs get no secrets; E2E would fail without the key, so they are not run.
+    if: >-
+      needs.detect.outputs.present == 'true' &&
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: app
+    env:
+      CI: 'true'
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+    steps:
+      - name: Check OpenRouter secret
+        working-directory: .
+        shell: bash
+        run: |
+          if [[ -z "${OPENROUTER_API_KEY:-}" ]]; then
+            echo "::error::Set Actions secret OPENROUTER_API_KEY; E2E calls the real OpenRouter API."
+            exit 1
+          fi
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox
+      # The E2E matrix strips LLM_MODEL, VISION_MODEL and JEV_MODEL from the inherited
+      # environment and reads them from the repo-root .env (app/tests/e2e/servers.ts).
+      # Only non-secret model IDs go into the file; the key stays in the job environment.
+      - name: Write model IDs to repo-root .env
+        shell: bash
+        run: |
+          printf 'LLM_MODEL=%s\nVISION_MODEL=%s\nJEV_MODEL=%s\n' \
+            "$LLM_MODEL" "$VISION_MODEL" "$JEV_MODEL" > ../.env
+      - run: npm run build
+      - run: npm run test:e2e
+      - name: Upload E2E results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-results
+          path: app/var/e2e/
+          retention-days: 7
+          if-no-files-found: ignore

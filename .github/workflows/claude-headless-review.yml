@@ -1,0 +1,88 @@
+# Claude Code headless (`claude -p`) PR review on a Claude subscription (Pro/Max/Team/Enterprise).
+# Runs .github/scripts/claude_pr_review.sh and posts the result as one PR comment that is
+# updated on every push.
+# Secret: CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`, valid for one year).
+# Optional variables: CLAUDE_MODEL, CLAUDE_CODE_VERSION.
+# Setup steps: docs/claude-headless-review-setup.md
+name: Claude Headless Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: claude-headless-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    # Same-repository, non-draft PRs only: fork PRs get no secrets.
+    if: >-
+      github.event.sender.type != 'Bot' &&
+      !github.event.pull_request.draft &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    steps:
+      - name: Check Claude subscription token
+        id: secret
+        shell: bash
+        run: |
+          if [[ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]]; then
+            echo "::notice::skipped: secret not configured (CLAUDE_CODE_OAUTH_TOKEN)"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v7
+        if: steps.secret.outputs.configured == 'true'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          # Keep the GitHub token out of .git/config, where Claude's Read tool could see it.
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        if: steps.secret.outputs.configured == 'true'
+        with:
+          node-version: '24'
+
+      - name: Install Claude Code
+        if: steps.secret.outputs.configured == 'true'
+        run: |
+          npm install -g "@anthropic-ai/claude-code@${{ vars.CLAUDE_CODE_VERSION || '2.1.332' }}"
+          claude --version
+
+      - name: Run headless review
+        if: steps.secret.outputs.configured == 'true'
+        env:
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL || 'sonnet' }}
+        run: bash .github/scripts/claude_pr_review.sh "${{ github.event.pull_request.base.ref }}" "$RUNNER_TEMP/claude-ci"
+
+      - name: Post or update PR comment
+        if: steps.secret.outputs.configured == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          marker='<!-- claude-headless-review -->'
+          body="$RUNNER_TEMP/claude-ci/comment.md"
+          { echo "$marker"; echo "## Claude headless review"; echo; cat "$RUNNER_TEMP/claude-ci/review.md"; } > "$body"
+          cat "$RUNNER_TEMP/claude-ci/review.md" >> "$GITHUB_STEP_SUMMARY"
+          # Find this workflow's own comment by its marker; PR-Agent also posts as github-actions.
+          id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id" | tail -n1)
+          if [[ -n "$id" ]]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@"$body" >/dev/null
+          else
+            gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" -F body=@"$body" >/dev/null
+          fi
