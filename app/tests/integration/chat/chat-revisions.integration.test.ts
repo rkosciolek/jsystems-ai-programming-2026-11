@@ -193,6 +193,9 @@ async function readChunks(stream: ReadableStream<unknown>): Promise<Record<strin
 
 describe("chatStream revision tool with captured provider exchanges", () => {
   beforeEach(async () => {
+    // Facts are recomputed against the current date; pin it to the recording day (TODAY).
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(`${TODAY}T12:00:00.000Z`));
     vi.stubEnv("OPENROUTER_API_KEY", "synthetic-test-key");
     vi.stubEnv("LLM_MODEL", "openai/gpt-6-luna");
     vi.stubEnv("LLM_REASONING_EFFORT", "medium");
@@ -205,6 +208,7 @@ describe("chatStream revision tool with captured provider exchanges", () => {
 
   afterEach(async () => {
     getCaseStore().clear();
+    vi.useRealTimers();
     vi.unstubAllEnvs();
     await rm(LOG_PATH, { force: true });
   });
